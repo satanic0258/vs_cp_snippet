@@ -1,0 +1,1055 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>SegmentTree</Title>
+      <Author>[USERNAME]</Author>
+      <Description>使いやすさを求めてAIと作成したセグメント木スニペット。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPSegmentTree</Shortcut>
+    </Header>
+    <Snippet>
+      <Declarations>
+      </Declarations>
+      <Code Language="cpp" Delimiter="$"><![CDATA[namespace cpseg {
+
+	// ================================================================
+	// public specs
+	// ================================================================
+	template<class... Qs> struct Query {};
+	template<class... Us> struct Update {};
+
+	struct Add {};
+	struct Assign {};
+	template<class T> struct AddAs { using type = T; };
+	template<class T> struct AssignAs { using type = T; };
+
+	template<class T>
+	struct ArgResult {
+		T value;
+		int index;
+	};
+
+	namespace detail {
+
+		template<class...> inline constexpr bool always_false_v = false;
+
+		enum class builtin_update_kind { add, assign };
+		template<class U> struct builtin_update_kind_of;
+		template<> struct builtin_update_kind_of<Add> { static constexpr auto value = builtin_update_kind::add; };
+		template<> struct builtin_update_kind_of<Assign> { static constexpr auto value = builtin_update_kind::assign; };
+		template<class T> struct builtin_update_kind_of<AddAs<T>> { static constexpr auto value = builtin_update_kind::add; };
+		template<class T> struct builtin_update_kind_of<AssignAs<T>> { static constexpr auto value = builtin_update_kind::assign; };
+		template<class U> inline constexpr bool is_add_update_v = builtin_update_kind_of<U>::value == builtin_update_kind::add;
+		template<class U> inline constexpr bool is_assign_update_v = builtin_update_kind_of<U>::value == builtin_update_kind::assign;
+
+		template<class T, class... Ts>
+		inline constexpr bool contains_v = (std::is_same_v<T, Ts> || ...);
+
+		template<class... Ts> struct unique_types : std::true_type {};
+		template<class T, class... Ts>
+		struct unique_types<T, Ts...>
+			: std::bool_constant<!contains_v<T, Ts...> && unique_types<Ts...>::value> {};
+
+		template<class Q, class Value>
+		using query_state_t = typename Q::template state_type<Value>;
+
+		template<class Q, class Value, class = void>
+		struct query_answer { using type = query_state_t<Q, Value>; };
+
+		template<class Q, class Value>
+		struct query_answer<Q, Value, std::void_t<typename Q::template answer_type<Value>>> {
+			using type = typename Q::template answer_type<Value>;
+		};
+
+		template<class Q, class Value>
+		using query_answer_t = typename query_answer<Q, Value>::type;
+
+		template<class Q, class Value>
+		inline query_answer_t<Q, Value> extract(const query_state_t<Q, Value> & s) {
+			if constexpr (requires { Q::template get<Value>(s); }) {
+				return Q::template get<Value>(s);
+			}
+			else {
+				static_assert(std::is_convertible_v<const query_state_t<Q, Value>&, query_answer_t<Q, Value>>,
+					"Q::get<Value>(state) is required when answer_type differs from state_type");
+				return s;
+			}
+		}
+
+		template<class Q, class Value>
+		inline query_state_t<Q, Value> make_query_state(const Value & v, int index) {
+			if constexpr (requires { Q::template make<Value>(v, index); }) {
+				return Q::template make<Value>(v, index);
+			}
+			else {
+				return Q::template make<Value>(v);
+			}
+		}
+
+		template<class Q, class Value>
+		struct QueryCell {
+			query_state_t<Q, Value> value;
+			explicit QueryCell(query_state_t<Q, Value> v) : value(std::move(v)) {}
+		};
+
+	} // namespace detail
+
+	// ================================================================
+	// standard queries
+	// Query policy:
+	//   state_type<Value>, id<Value>(), make<Value>(value) [or make(value,index)], op<Value>(l,r)
+	// optional:
+	//   answer_type<Value>, get<Value>(state)
+	//   apply<U>(state, value, len) (for built-in lazy Update<...>)
+	// ================================================================
+	template<class R = void>
+	struct SumQ {
+		template<class Value>
+		using state_type = std::conditional_t<std::is_void_v<R>, Value, R>;
+
+		template<class Value>
+		static state_type<Value> id() { return state_type<Value>(0); }
+
+		template<class Value>
+		static state_type<Value> make(const Value & x) { return state_type<Value>(x); }
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & a, const state_type<Value> & b) {
+			return a + b;
+		}
+
+		template<class U, class Value, class X>
+		static void apply(state_type<Value> & s, const X & x, int len) {
+			using S = state_type<Value>;
+			if constexpr (detail::is_add_update_v<U>) s += S(x) * S(len);
+			else if constexpr (detail::is_assign_update_v<U>) s = S(x) * S(len);
+		}
+	};
+	using Sum = SumQ<>;
+	template<class R> using SumAs = SumQ<R>;
+
+	template<class R = void>
+	struct MinQ {
+		template<class Value>
+		using state_type = std::conditional_t<std::is_void_v<R>, Value, R>;
+
+		template<class Value>
+		static state_type<Value> id() { return std::numeric_limits<state_type<Value>>::max(); }
+
+		template<class Value>
+		static state_type<Value> make(const Value & x) { return state_type<Value>(x); }
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & a, const state_type<Value> & b) {
+			return (b < a) ? b : a;
+		}
+
+		template<class U, class Value, class X>
+		static void apply(state_type<Value> & s, const X & x, int) {
+			if constexpr (detail::is_add_update_v<U>) s += state_type<Value>(x);
+			else if constexpr (detail::is_assign_update_v<U>) s = state_type<Value>(x);
+		}
+	};
+	using Min = MinQ<>;
+	template<class R> using MinAs = MinQ<R>;
+
+	template<class R = void>
+	struct MaxQ {
+		template<class Value>
+		using state_type = std::conditional_t<std::is_void_v<R>, Value, R>;
+
+		template<class Value>
+		static state_type<Value> id() { return std::numeric_limits<state_type<Value>>::lowest(); }
+
+		template<class Value>
+		static state_type<Value> make(const Value & x) { return state_type<Value>(x); }
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & a, const state_type<Value> & b) {
+			return (a < b) ? b : a;
+		}
+
+		template<class U, class Value, class X>
+		static void apply(state_type<Value> & s, const X & x, int) {
+			if constexpr (detail::is_add_update_v<U>) s += state_type<Value>(x);
+			else if constexpr (detail::is_assign_update_v<U>) s = state_type<Value>(x);
+		}
+	};
+	using Max = MaxQ<>;
+	template<class R> using MaxAs = MaxQ<R>;
+
+	// 最小/最大値とその添字。同値なら最小添字を返す。
+	// left は Assign で区間全体が同値になったとき左端添字を復元するための内部情報。
+	template<class R = void>
+	struct ArgMinQ {
+		template<class Value>
+		using value_type = std::conditional_t<std::is_void_v<R>, Value, R>;
+
+		template<class Value>
+		struct state_type {
+			value_type<Value> value;
+			int index;
+			int left;
+		};
+
+		template<class Value>
+		using answer_type = ArgResult<value_type<Value>>;
+
+		template<class Value>
+		static state_type<Value> id() {
+			return { std::numeric_limits<value_type<Value>>::max(), -1, -1 };
+		}
+
+		template<class Value>
+		static state_type<Value> make(const Value & x, int index) {
+			return { value_type<Value>(x), index, index };
+		}
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & a, const state_type<Value> & b) {
+			if (a.index < 0) return b;
+			if (b.index < 0) return a;
+			const int left = a.left;
+			if (b.value < a.value) return { b.value, b.index, left };
+			if (a.value < b.value) return { a.value, a.index, left };
+			return { a.value, std::min(a.index, b.index), left };
+		}
+
+		template<class Value>
+		static answer_type<Value> get(const state_type<Value> & s) {
+			return { s.value, s.index };
+		}
+
+		template<class U, class Value, class X>
+		static void apply(state_type<Value> & s, const X & x, int) {
+			if (s.index < 0) return;
+			if constexpr (detail::is_add_update_v<U>) {
+				s.value += value_type<Value>(x);
+			}
+			else if constexpr (detail::is_assign_update_v<U>) {
+				s.value = value_type<Value>(x);
+				s.index = s.left;
+			}
+		}
+	};
+	using ArgMin = ArgMinQ<>;
+	template<class R> using ArgMinAs = ArgMinQ<R>;
+
+	template<class R = void>
+	struct ArgMaxQ {
+		template<class Value>
+		using value_type = std::conditional_t<std::is_void_v<R>, Value, R>;
+
+		template<class Value>
+		struct state_type {
+			value_type<Value> value;
+			int index;
+			int left;
+		};
+
+		template<class Value>
+		using answer_type = ArgResult<value_type<Value>>;
+
+		template<class Value>
+		static state_type<Value> id() {
+			return { std::numeric_limits<value_type<Value>>::lowest(), -1, -1 };
+		}
+
+		template<class Value>
+		static state_type<Value> make(const Value & x, int index) {
+			return { value_type<Value>(x), index, index };
+		}
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & a, const state_type<Value> & b) {
+			if (a.index < 0) return b;
+			if (b.index < 0) return a;
+			const int left = a.left;
+			if (a.value < b.value) return { b.value, b.index, left };
+			if (b.value < a.value) return { a.value, a.index, left };
+			return { a.value, std::min(a.index, b.index), left };
+		}
+
+		template<class Value>
+		static answer_type<Value> get(const state_type<Value> & s) {
+			return { s.value, s.index };
+		}
+
+		template<class U, class Value, class X>
+		static void apply(state_type<Value> & s, const X & x, int) {
+			if (s.index < 0) return;
+			if constexpr (detail::is_add_update_v<U>) {
+				s.value += value_type<Value>(x);
+			}
+			else if constexpr (detail::is_assign_update_v<U>) {
+				s.value = value_type<Value>(x);
+				s.index = s.left;
+			}
+		}
+	};
+	using ArgMax = ArgMaxQ<>;
+	template<class R> using ArgMaxAs = ArgMaxQ<R>;
+
+	// ================================================================
+	// aggregate node = direct product of independent Query policies
+	// ================================================================
+	template<class Value, class QueryPack> class Aggregate;
+
+	template<class Value, class... Qs>
+	class Aggregate<Value, Query<Qs...>> : private detail::QueryCell<Qs, Value>... {
+		static_assert(sizeof...(Qs) > 0, "Query<> must not be empty");
+		static_assert(detail::unique_types<Qs...>::value, "duplicate Query policy");
+
+		struct init_t {};
+		explicit Aggregate(init_t, detail::query_state_t<Qs, Value>... xs)
+			: detail::QueryCell<Qs, Value>(std::move(xs))... {}
+
+	public:
+		template<class Q>
+		static constexpr bool has_query = detail::contains_v<Q, Qs...>;
+
+		template<class Q>
+		using state_type = detail::query_state_t<Q, Value>;
+
+		template<class Q>
+		using answer_type = detail::query_answer_t<Q, Value>;
+
+		template<class Q>
+		state_type<Q> & raw() {
+			static_assert(has_query<Q>, "Q is not contained in Query<...>");
+			return static_cast<detail::QueryCell<Q, Value> &>(*this).value;
+		}
+
+		template<class Q>
+		const state_type<Q> & raw() const {
+			static_assert(has_query<Q>, "Q is not contained in Query<...>");
+			return static_cast<const detail::QueryCell<Q, Value> &>(*this).value;
+		}
+
+		template<class Q>
+		answer_type<Q> get() const {
+			return detail::extract<Q, Value>(raw<Q>());
+		}
+
+		static Aggregate id() {
+			return Aggregate(init_t{}, Qs::template id<Value>()...);
+		}
+
+		static Aggregate make(const Value & v, int index) {
+			return Aggregate(init_t{}, detail::make_query_state<Qs, Value>(v, index)...);
+		}
+
+		static Aggregate op(const Aggregate & l, const Aggregate & r) {
+			return Aggregate(init_t{}, Qs::template op<Value>(l.template raw<Qs>(), r.template raw<Qs>())...);
+		}
+
+		template<class Action>
+		void apply(const typename Action::tag_type & f, int len) {
+			(Action::template apply<Qs, Value>(this->template raw<Qs>(), f, len), ...);
+		}
+	};
+
+	// ================================================================
+	// SegmentTree
+	// ================================================================
+	template<class Value, class QueryPack>
+	class SegmentTree {
+	public:
+		using value_type = Value;
+		using node_type = Aggregate<Value, QueryPack>;
+
+	private:
+		int n_ = 0;
+		int size_ = 1;
+		std::vector<node_type> seg_;
+
+		void init(int n) {
+			n_ = n;
+			size_ = 1;
+			while (size_ < n_) size_ <<= 1;
+			seg_.assign(size_ << 1, node_type::id());
+		}
+
+		void pull(int k) { seg_[k] = node_type::op(seg_[k << 1], seg_[k << 1 | 1]); }
+
+	public:
+		explicit SegmentTree(int n = 0) { init(n); }
+
+		explicit SegmentTree(const std::vector<Value> & a) {
+			init((int)a.size());
+			for (int i = 0; i < n_; ++i) seg_[size_ + i] = node_type::make(a[i], i);
+			for (int k = size_ - 1; k >= 1; --k) pull(k);
+		}
+
+		int size() const { return n_; }
+
+		void set(int p, const Value & x) {
+			assert(0 <= p && p < n_);
+			p += size_;
+			seg_[p] = node_type::make(x, p - size_);
+			while (p >>= 1) pull(p);
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> get(int p) const {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= p && p < n_);
+			return seg_[size_ + p].template get<Q>();
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> query(int l, int r) const {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= l && l <= r && r <= n_);
+			using S = typename node_type::template state_type<Q>;
+			S vl = Q::template id<Value>();
+			S vr = Q::template id<Value>();
+			for (l += size_, r += size_; l < r; l >>= 1, r >>= 1) {
+				if (l & 1) vl = Q::template op<Value>(vl, seg_[l++].template raw<Q>());
+				if (r & 1) vr = Q::template op<Value>(seg_[--r].template raw<Q>(), vr);
+			}
+			return detail::extract<Q, Value>(Q::template op<Value>(vl, vr));
+		}
+
+		node_type query_all(int l, int r) const {
+			assert(0 <= l && l <= r && r <= n_);
+			node_type vl = node_type::id(), vr = node_type::id();
+			for (l += size_, r += size_; l < r; l >>= 1, r >>= 1) {
+				if (l & 1) vl = node_type::op(vl, seg_[l++]);
+				if (r & 1) vr = node_type::op(seg_[--r], vr);
+			}
+			return node_type::op(vl, vr);
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> all() const {
+			static_assert(node_type::template has_query<Q>);
+			return seg_[1].template get<Q>();
+		}
+
+		// pred(identity) == true, and pred must be monotone.
+		template<class Q, class Pred>
+		int max_right(int l, Pred pred) const {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= l && l <= n_);
+			using S = typename node_type::template state_type<Q>;
+			S sm = Q::template id<Value>();
+			assert(pred(detail::extract<Q, Value>(sm)));
+			if (l == n_) return n_;
+
+			int p = l + size_;
+			do {
+				while ((p & 1) == 0) p >>= 1;
+				S nxt = Q::template op<Value>(sm, seg_[p].template raw<Q>());
+				if (!pred(detail::extract<Q, Value>(nxt))) {
+					while (p < size_) {
+						p <<= 1;
+						S left = Q::template op<Value>(sm, seg_[p].template raw<Q>());
+						if (pred(detail::extract<Q, Value>(left))) {
+							sm = std::move(left);
+							++p;
+						}
+					}
+					return std::min(p - size_, n_);
+				}
+				sm = std::move(nxt);
+				++p;
+			} while ((p & -p) != p);
+			return n_;
+		}
+
+		// pred(identity) == true, and pred must be monotone.
+		template<class Q, class Pred>
+		int min_left(int r, Pred pred) const {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= r && r <= n_);
+			using S = typename node_type::template state_type<Q>;
+			S sm = Q::template id<Value>();
+			assert(pred(detail::extract<Q, Value>(sm)));
+			if (r == 0) return 0;
+
+			int p = r + size_;
+			do {
+				--p;
+				while (p > 1 && (p & 1)) p >>= 1;
+				S nxt = Q::template op<Value>(seg_[p].template raw<Q>(), sm);
+				if (!pred(detail::extract<Q, Value>(nxt))) {
+					while (p < size_) {
+						p = (p << 1) | 1;
+						S right = Q::template op<Value>(seg_[p].template raw<Q>(), sm);
+						if (pred(detail::extract<Q, Value>(right))) {
+							sm = std::move(right);
+							--p;
+						}
+					}
+					return std::max(0, p + 1 - size_);
+				}
+				sm = std::move(nxt);
+			} while ((p & -p) != p);
+			return 0;
+		}
+	};
+
+	// ================================================================
+	// built-in lazy actions
+	// ================================================================
+	namespace detail {
+
+		template<class U, class Q, class Value, class X>
+		inline void call_apply_update(query_state_t<Q, Value> & s, const X & x, int len) {
+			if constexpr (requires { Q::template apply<U, Value>(s, x, len); }) {
+				Q::template apply<U, Value>(s, x, len);
+			}
+			else {
+				static_assert(always_false_v<Q>,
+					"This Query does not support the requested Update. Define Q::apply<U,Value>(state, value, len).");
+			}
+		}
+
+		template<class AddU, class T>
+		struct AddAction {
+			using tag_type = T;
+			using add_type = T;
+
+			static tag_type id() { return T(0); }
+			static bool is_id(const tag_type & f) { return f == T(0); }
+			static tag_type compose(const tag_type & old, const tag_type & nw) { return old + nw; }
+			static tag_type make_add(const add_type & x) { return x; }
+
+			template<class Q, class Value>
+			static void apply(query_state_t<Q, Value> & s, const tag_type & f, int len) {
+				call_apply_update<AddU, Q, Value>(s, f, len);
+			}
+		};
+
+		template<class AssignU, class T>
+		struct AssignAction {
+			struct tag_type { bool active; T value; };
+			using assign_type = T;
+
+			static tag_type id() { return { false, T{} }; }
+			static bool is_id(const tag_type & f) { return !f.active; }
+			static tag_type compose(const tag_type & old, const tag_type & nw) { return nw.active ? nw : old; }
+			static tag_type make_assign(const assign_type & x) { return { true, x }; }
+
+			template<class Q, class Value>
+			static void apply(query_state_t<Q, Value> & s, const tag_type & f, int len) {
+				if (f.active) call_apply_update<AssignU, Q, Value>(s, f.value, len);
+			}
+		};
+
+		template<class AddU, class AssignU, class T>
+		struct AssignAddAction {
+			// assign=false: +value / assign=true: =value
+			struct tag_type { bool assign; T value; };
+			using add_type = T;
+			using assign_type = T;
+
+			static tag_type id() { return { false, T(0) }; }
+			static bool is_id(const tag_type & f) { return !f.assign && f.value == T(0); }
+
+			static tag_type compose(const tag_type & old, const tag_type & nw) {
+				if (nw.assign) return nw;
+				if (old.assign) return { true, old.value + nw.value };
+				return { false, old.value + nw.value };
+			}
+
+			static tag_type make_add(const add_type & x) { return { false, x }; }
+			static tag_type make_assign(const assign_type & x) { return { true, x }; }
+
+			template<class Q, class Value>
+			static void apply(query_state_t<Q, Value> & s, const tag_type & f, int len) {
+				if (f.assign) call_apply_update<AssignU, Q, Value>(s, f.value, len);
+				else if (f.value != T(0)) call_apply_update<AddU, Q, Value>(s, f.value, len);
+			}
+		};
+
+		template<class AssignU, class AddU, class AssignT, class AddT>
+		struct HeteroAssignAddAction {
+			struct tag_type {
+				bool has_assign;
+				AssignT assign_value;
+				AddT add_value;
+			};
+			using assign_type = AssignT;
+			using add_type = AddT;
+
+			static tag_type id() { return { false, AssignT{}, AddT(0) }; }
+			static bool is_id(const tag_type & f) { return !f.has_assign && f.add_value == AddT(0); }
+
+			static tag_type compose(const tag_type & old, const tag_type & nw) {
+				if (nw.has_assign) return nw;
+				tag_type res = old;
+				res.add_value = res.add_value + nw.add_value;
+				return res;
+			}
+
+			static tag_type make_add(const add_type & x) { return { false, AssignT{}, x }; }
+			static tag_type make_assign(const assign_type & x) { return { true, x, AddT(0) }; }
+
+			template<class Q, class Value>
+			static void apply(query_state_t<Q, Value> & s, const tag_type & f, int len) {
+				if (f.has_assign) call_apply_update<AssignU, Q, Value>(s, f.assign_value, len);
+				if (f.add_value != AddT(0)) call_apply_update<AddU, Q, Value>(s, f.add_value, len);
+			}
+		};
+
+		enum class update_kind { add, assign };
+
+		template<class U, class Value> struct update_info;
+		template<class Value>
+		struct update_info<Add, Value> { static constexpr auto kind = update_kind::add; using type = Value; };
+		template<class Value>
+		struct update_info<Assign, Value> { static constexpr auto kind = update_kind::assign; using type = Value; };
+		template<class T, class Value>
+		struct update_info<AddAs<T>, Value> { static constexpr auto kind = update_kind::add; using type = T; };
+		template<class T, class Value>
+		struct update_info<AssignAs<T>, Value> { static constexpr auto kind = update_kind::assign; using type = T; };
+
+		template<class Spec> struct is_update_pack : std::false_type {};
+		template<class... Us> struct is_update_pack<Update<Us...>> : std::true_type {};
+		template<class Spec> inline constexpr bool is_update_pack_v = is_update_pack<Spec>::value;
+
+		template<class U, class Spec> struct update_pack_contains : std::false_type {};
+		template<class U, class... Us>
+		struct update_pack_contains<U, Update<Us...>> : std::bool_constant<contains_v<U, Us...>> {};
+		template<class U, class Spec>
+		inline constexpr bool update_pack_contains_v = update_pack_contains<U, Spec>::value;
+
+		template<class U, class Value>
+		using update_value_t = typename update_info<U, Value>::type;
+
+		template<class U, class Value, class Action>
+		inline typename Action::tag_type make_update_tag(const update_value_t<U, Value> & x) {
+			if constexpr (update_info<U, Value>::kind == update_kind::add) {
+				return Action::make_add(x);
+			}
+			else {
+				return Action::make_assign(x);
+			}
+		}
+
+		template<class Value, class Spec>
+		struct resolve_action { using type = Spec; };
+
+		template<class Value, class U>
+		struct resolve_action<Value, Update<U>> {
+			using I = update_info<U, Value>;
+			using type = std::conditional_t<I::kind == update_kind::add,
+				AddAction<U, typename I::type>,
+				AssignAction<U, typename I::type>>;
+		};
+
+		template<class Value, class U1, class U2>
+		struct resolve_action<Value, Update<U1, U2>> {
+			using I1 = update_info<U1, Value>;
+			using I2 = update_info<U2, Value>;
+			static_assert(I1::kind != I2::kind,
+				"Update<...> supports at most one Add-like and one Assign-like update");
+
+			using AddU = std::conditional_t<I1::kind == update_kind::add, U1, U2>;
+			using AssignU = std::conditional_t<I1::kind == update_kind::assign, U1, U2>;
+			using AddT = std::conditional_t<I1::kind == update_kind::add, typename I1::type, typename I2::type>;
+			using AssignT = std::conditional_t<I1::kind == update_kind::assign, typename I1::type, typename I2::type>;
+			using type = std::conditional_t<std::is_same_v<AddT, AssignT>,
+				AssignAddAction<AddU, AssignU, AddT>,
+				HeteroAssignAddAction<AssignU, AddU, AssignT, AddT>>;
+		};
+
+		template<class Value>
+		struct resolve_action<Value, Update<>> {
+			static_assert(always_false_v<Value>, "Update<> must not be empty");
+		};
+
+		template<class Value, class U1, class U2, class... Us>
+		struct resolve_action<Value, Update<U1, U2, Us...>> {
+			static_assert(always_false_v<Value>,
+				"Built-in Update<...> supports only Add / Assign. Use a custom Action for other updates.");
+		};
+
+	} // namespace detail
+
+	// ================================================================
+	// LazySegmentTree
+	// Action contract:
+	//   tag_type, id(), is_id(tag), compose(old,nw),
+	//   apply<Q,Value>(Q::state_type<Value>&, tag, len)
+	// compose(old,nw) means nw after old = nw(old(x)).
+	// ================================================================
+	template<class Value, class QueryPack, class ActionSpec>
+	class LazySegmentTree {
+	public:
+		using value_type = Value;
+		using node_type = Aggregate<Value, QueryPack>;
+		using action_type = typename detail::resolve_action<Value, ActionSpec>::type;
+		using tag_type = typename action_type::tag_type;
+
+	private:
+		int n_ = 0;
+		int size_ = 1;
+		int log_ = 0;
+		std::vector<node_type> seg_;
+		std::vector<tag_type> lazy_; // only internal nodes: [1, size_)
+
+		void init(int n) {
+			n_ = n;
+			size_ = 1;
+			log_ = 0;
+			while (size_ < n_) size_ <<= 1, ++log_;
+			seg_.assign(size_ << 1, node_type::id());
+			lazy_.assign(size_, action_type::id());
+		}
+
+		void pull(int k) { seg_[k] = node_type::op(seg_[k << 1], seg_[k << 1 | 1]); }
+
+		void all_apply(int k, const tag_type & f, int len) {
+			seg_[k].template apply<action_type>(f, len);
+			if (k < size_) lazy_[k] = action_type::compose(lazy_[k], f);
+		}
+
+		void push(int k, int len) {
+			if (action_type::is_id(lazy_[k])) return;
+			all_apply(k << 1, lazy_[k], len >> 1);
+			all_apply(k << 1 | 1, lazy_[k], len >> 1);
+			lazy_[k] = action_type::id();
+		}
+
+		void push_to(int p) {
+			for (int i = log_; i >= 1; --i) push(p >> i, 1 << i);
+		}
+
+		static int floor_log2(unsigned x) {
+#if defined(__GNUC__) || defined(__clang__)
+			return 31 - __builtin_clz(x);
+#else
+			int r = 0;
+			while (x >>= 1) ++r;
+			return r;
+#endif
+		}
+
+		int node_len(int k) const {
+			return 1 << (log_ - floor_log2((unsigned)k));
+		}
+
+	public:
+		explicit LazySegmentTree(int n = 0) { init(n); }
+
+		explicit LazySegmentTree(const std::vector<Value> & a) {
+			init((int)a.size());
+			for (int i = 0; i < n_; ++i) seg_[size_ + i] = node_type::make(a[i], i);
+			for (int k = size_ - 1; k >= 1; --k) pull(k);
+		}
+
+		int size() const { return n_; }
+
+		void set(int p, const Value & x) {
+			assert(0 <= p && p < n_);
+			p += size_;
+			push_to(p);
+			seg_[p] = node_type::make(x, p - size_);
+			for (int i = 1; i <= log_; ++i) pull(p >> i);
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> get(int p) {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= p && p < n_);
+			p += size_;
+			push_to(p);
+			return seg_[p].template get<Q>();
+		}
+
+		void apply(int l, int r, const tag_type & f) {
+			assert(0 <= l && l <= r && r <= n_);
+			if (l == r || action_type::is_id(f)) return;
+
+			int l0 = l + size_;
+			int r0 = r + size_;
+
+			for (int i = log_; i >= 1; --i) {
+				if (((l0 >> i) << i) != l0) push(l0 >> i, 1 << i);
+				if (((r0 >> i) << i) != r0) push((r0 - 1) >> i, 1 << i);
+			}
+
+			int L = l0, R = r0, len = 1;
+			while (L < R) {
+				if (L & 1) all_apply(L++, f, len);
+				if (R & 1) all_apply(--R, f, len);
+				L >>= 1;
+				R >>= 1;
+				len <<= 1;
+			}
+
+			for (int i = 1; i <= log_; ++i) {
+				if (((l0 >> i) << i) != l0) pull(l0 >> i);
+				if (((r0 >> i) << i) != r0) pull((r0 - 1) >> i);
+			}
+		}
+
+		// Update<...> で列挙した更新を型指定して実行する。
+		// 例: Update<Add, Assign> -> update<Add>(l,r,x), update<Assign>(l,r,x)
+		//     Update<AddAs<int>> -> update<AddAs<int>>(l,r,x)
+		template<class U>
+			requires (detail::is_update_pack_v<ActionSpec> &&
+		detail::update_pack_contains_v<U, ActionSpec>)
+			void update(int l, int r, const detail::update_value_t<U, Value> & x) {
+			apply(l, r, detail::make_update_tag<U, Value, action_type>(x));
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> query(int l, int r) {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= l && l <= r && r <= n_);
+			using S = typename node_type::template state_type<Q>;
+			if (l == r) return detail::extract<Q, Value>(Q::template id<Value>());
+
+			int L = l + size_;
+			int R = r + size_;
+			for (int i = log_; i >= 1; --i) {
+				if (((L >> i) << i) != L) push(L >> i, 1 << i);
+				if (((R >> i) << i) != R) push((R - 1) >> i, 1 << i);
+			}
+
+			S vl = Q::template id<Value>();
+			S vr = Q::template id<Value>();
+			while (L < R) {
+				if (L & 1) vl = Q::template op<Value>(vl, seg_[L++].template raw<Q>());
+				if (R & 1) vr = Q::template op<Value>(seg_[--R].template raw<Q>(), vr);
+				L >>= 1;
+				R >>= 1;
+			}
+			return detail::extract<Q, Value>(Q::template op<Value>(vl, vr));
+		}
+
+		node_type query_all(int l, int r) {
+			assert(0 <= l && l <= r && r <= n_);
+			if (l == r) return node_type::id();
+
+			int L = l + size_;
+			int R = r + size_;
+			for (int i = log_; i >= 1; --i) {
+				if (((L >> i) << i) != L) push(L >> i, 1 << i);
+				if (((R >> i) << i) != R) push((R - 1) >> i, 1 << i);
+			}
+
+			node_type vl = node_type::id(), vr = node_type::id();
+			while (L < R) {
+				if (L & 1) vl = node_type::op(vl, seg_[L++]);
+				if (R & 1) vr = node_type::op(seg_[--R], vr);
+				L >>= 1;
+				R >>= 1;
+			}
+			return node_type::op(vl, vr);
+		}
+
+		template<class Q>
+		typename node_type::template answer_type<Q> all() const {
+			static_assert(node_type::template has_query<Q>);
+			return seg_[1].template get<Q>();
+		}
+
+		// pred(identity) == true, and pred must be monotone.
+		template<class Q, class Pred>
+		int max_right(int l, Pred pred) {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= l && l <= n_);
+			using S = typename node_type::template state_type<Q>;
+			S sm = Q::template id<Value>();
+			assert(pred(detail::extract<Q, Value>(sm)));
+			if (l == n_) return n_;
+
+			int p = l + size_;
+			for (int i = log_; i >= 1; --i) push(p >> i, 1 << i);
+
+			do {
+				while ((p & 1) == 0) p >>= 1;
+				S nxt = Q::template op<Value>(sm, seg_[p].template raw<Q>());
+				if (!pred(detail::extract<Q, Value>(nxt))) {
+					int len = node_len(p);
+					while (p < size_) {
+						push(p, len);
+						p <<= 1;
+						len >>= 1;
+						S left = Q::template op<Value>(sm, seg_[p].template raw<Q>());
+						if (pred(detail::extract<Q, Value>(left))) {
+							sm = std::move(left);
+							++p;
+						}
+					}
+					return std::min(p - size_, n_);
+				}
+				sm = std::move(nxt);
+				++p;
+			} while ((p & -p) != p);
+			return n_;
+		}
+
+		// pred(identity) == true, and pred must be monotone.
+		template<class Q, class Pred>
+		int min_left(int r, Pred pred) {
+			static_assert(node_type::template has_query<Q>);
+			assert(0 <= r && r <= n_);
+			using S = typename node_type::template state_type<Q>;
+			S sm = Q::template id<Value>();
+			assert(pred(detail::extract<Q, Value>(sm)));
+			if (r == 0) return 0;
+
+			int p = r + size_;
+			for (int i = log_; i >= 1; --i) push((p - 1) >> i, 1 << i);
+
+			do {
+				--p;
+				while (p > 1 && (p & 1)) p >>= 1;
+				S nxt = Q::template op<Value>(seg_[p].template raw<Q>(), sm);
+				if (!pred(detail::extract<Q, Value>(nxt))) {
+					int len = node_len(p);
+					while (p < size_) {
+						push(p, len);
+						p = (p << 1) | 1;
+						len >>= 1;
+						S right = Q::template op<Value>(seg_[p].template raw<Q>(), sm);
+						if (pred(detail::extract<Q, Value>(right))) {
+							sm = std::move(right);
+							--p;
+						}
+					}
+					return std::max(0, p + 1 - size_);
+				}
+				sm = std::move(nxt);
+			} while ((p & -p) != p);
+			return 0;
+		}
+	};
+
+	// ============================================================================
+	// コンテスト中に特殊型を作るときのコピペ用テンプレート
+	// 必要な部分だけコメント解除・書き換える。
+	// ============================================================================
+#if 0
+
+// ---------- 特殊 Query ----------
+// 1 Query = 1つのモノイド。
+// 補助情報が相互依存するなら Query<A,B,C> に分けず、State に全部まとめる。
+	struct MyQuery {
+		template<class Value>
+		using state_type = /* 区間に保持する型 */ long long;
+
+		// query() の返り値を state_type と変えたいときだけ定義。
+		// template<class Value>
+		// using answer_type = /* 返り値型 */ long long;
+
+		template<class Value>
+		static state_type<Value> id() {
+			return /* 単位元 */ {};
+		}
+
+		template<class Value>
+		static state_type<Value> make(const Value & x) {
+			return /* 葉 Value -> State */ {};
+		}
+
+		// 添字が必要な Query はこちらを使う（make(value) の代わり）。
+		// template<class Value>
+		// static state_type<Value> make(const Value& x, int index) {
+		//     return /* 葉 Value + 添字 -> State */ {};
+		// }
+
+		template<class Value>
+		static state_type<Value> op(const state_type<Value> & l,
+			const state_type<Value> & r) {
+			return /* l の後に r を連結 */ {};
+		}
+
+		// answer_type を定義したときだけ必要（State -> query返り値）。
+		// template<class Value>
+		// static answer_type<Value> get(const state_type<Value>& s) {
+		//     return ...;
+		// }
+
+		// 組み込み Update<...> に対応するときだけ。
+		// U は Add / Assign / AddAs<T> / AssignAs<T> のいずれか。
+		// template<class U, class Value, class X>
+		// static void apply(state_type<Value>& s, const X& x, int len) {
+		//     if constexpr (detail::is_add_update_v<U>) {
+		//         // 区間加算
+		//     } else if constexpr (detail::is_assign_update_v<U>) {
+		//         // 区間代入
+		//     }
+		// }
+	};
+
+	// 使用例:
+	// SegmentTree<Value, Query<MyQuery>> seg(a);
+	// SegmentTree<Value, Query<Sum, Min, MyQuery>> seg(a);
+	// auto ans = seg.query<MyQuery>(l, r);
+
+
+	// ---------- 特殊 Lazy Action ----------
+	// Add/Assign 以外（Affine, flip, 2種類の更新など）は Action を直接書く。
+	struct MyAction {
+		using tag_type = /* 遅延作用素の型 */ long long;
+
+		static tag_type id() {
+			return /* 恒等作用 */ {};
+		}
+
+		static bool is_id(const tag_type & f) {
+			return /* f が恒等作用か */ false;
+		}
+
+		// old を先、新しい nw を後に作用する合成:  nw(old(x))
+		static tag_type compose(const tag_type & old, const tag_type & nw) {
+			return /* nw o old */ {};
+		}
+
+		template<class Q, class Value>
+		static void apply(typename Q::template state_type<Value> & s,
+			const tag_type & f, int len) {
+			// Query が複数ある場合は if constexpr (std::is_same_v<Q, ...>) で分岐可。
+			// ただし複数 Query の情報を相互参照したいなら、1つの Query State にまとめる。
+			...;
+		}
+	};
+
+	// 使用例:
+	// LazySegmentTree<Value, Query<MyQuery>, MyAction> seg(a);
+	// seg.apply(l, r, tag);
+
+
+	// ---------- よく使う形 ----------
+	// SegmentTree<ll, Query<Sum, Min, Max, ArgMin, ArgMax>> seg(a);
+	// LazySegmentTree<ll, Query<Sum, Min>, Update<Add>> seg(a);
+	// LazySegmentTree<ll, Query<Sum, Min>, Update<Assign>> seg(a);
+	// LazySegmentTree<ll, Query<Sum, Min, Max>, Update<Add, Assign>> seg(a);
+	// LazySegmentTree<ll, Query<SumAs<__int128_t>>, Update<AddAs<int>>> seg(a);
+	//
+	// seg.query<Sum>(l, r);
+	// auto mn = seg.query<ArgMin>(l, r); // mn.value, mn.index。同値は最小添字
+	// auto mx = seg.query<ArgMax>(l, r);
+	// seg.query_all(l, r).get<Min>();
+	// seg.set(i, x);
+	// seg.update<Add>(l, r, x);       // Update<Add,...> に Add があるとき
+	// seg.update<Assign>(l, r, x);    // Update<...,Assign> に Assign があるとき
+	// seg.update<AddAs<int>>(l,r,x);  // Update<AddAs<int>> のとき
+	// seg.apply(l, r, tag);           // 自作 Action のとき
+	// seg.max_right<Sum>(l, pred);
+	// seg.min_left<Sum>(r, pred);
+	//
+	// 注意:
+	// - ArgMin/ArgMax は {value,index} を返す。同値は最小添字。
+	// - LazySegmentTree は「作用をノードに O(1) で必ず反映できる」場合用。
+	// - chmin/chmax 等で作用が失敗して子へ降りる必要があるものは Segment Tree Beats を別実装にする。
+	// - 永続化もストレージ方式が別なので PersistentSegmentTree を別実装にする。
+
+#endif
+
+} // namespace cpseg]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
