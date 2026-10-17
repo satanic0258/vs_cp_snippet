@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>msb</Title>
+      <Author>[USERNAME]</Author>
+      <Description>入力した64bit整数のMSBを求める．O(1)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPmsb</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[unsigned long long msb(unsigned long long x) {
+	x |= x >> 1;
+	x |= x >> 2;
+	x |= x >> 4;
+	x |= x >> 8;
+	x |= x >> 16;
+	x |= x >> 32;
+	return x & ~(x >> 1);
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

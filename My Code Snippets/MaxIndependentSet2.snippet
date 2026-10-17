@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>MaxIndependentSet2</Title>
+      <Author>[USERNAME]</Author>
+      <Description>グラフの最大独立集合サイズを求める．O(n 2^{n/2})．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPMaxIndependentSet2</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[class MaxIndependentSet { // V = V1 \cup V2
+	using B = long long;
+	int n, n1, n2;
+	std::vector<B> g;
+	std::vector<bool> ok1, ok2; // ok[S] : Is S\subseteq V stable?
+	std::vector<B> set; // set[S] : node-set \subseteq V2 which not adjacent to S
+	std::vector<int> dp; // dp[S] : max independent set in S \subseteq V2
+	std::vector<int> cost1, cost2; // cost[S] : cost S
+
+public:
+	MaxIndependentSet(const std::vector<std::vector<int>> & g_) : n(g_.size()), n1((n + 1) / 2), n2(n - n1), g(n, 0ll) {
+		for (int i = 0; i < n; ++i) {
+			for (auto& to : g_[i]) {
+				g[i] |= 1ll << to;
+				g[to] |= 1ll << i;
+			}
+		}
+	}
+
+	int calc() {
+		{ // ok1
+			ok1.resize(0);
+			ok1.resize(1 << n1, true);
+			REP(i, n1) FOR(j, i + 1, n1) if (g[i] & 1 << j) ok1[1 << i ^ 1 << j] = false;
+
+			REP(bit, 1 << n1) {
+				if (ok1[bit]) continue;
+				REP(i, n1) {
+					if (bit & 1 << i) continue;
+					ok1[bit | 1 << i] = false;
+				}
+			}
+		}
+		{ // ok2
+			ok2.resize(0);
+			ok2.resize(1 << n2, true);
+			REP(i, n2) FOR(j, i + 1, n2) if (g[i + n1] >> n1 & 1 << j) ok2[1 << i ^ 1 << j] = false;
+
+			REP(bit, 1 << n2) {
+				if (ok2[bit]) continue;
+				REP(i, n2) {
+					if (bit & 1 << i) continue;
+					ok2[bit | 1 << i] = false;
+				}
+			}
+		}
+
+		{ // set
+			set.resize(0);
+			set.resize(1 << n1, (1 << n2) - 1);
+			REP(i, n1) set[1 << i] &= ~g[i] >> n1;
+
+			REP(bit, 1 << n1) REP(i, n1) {
+				if (bit & 1 << i) continue;
+				set[bit | 1 << i] = set[bit] & set[1 << i];
+			}
+		}
+
+		{ // cost1
+			cost1.resize(0);
+			cost1.resize(1 << n1, 0);
+			REP(i, n1) cost1[1 << i] = 1;
+
+			REP(bit, 1 << n1) REP(i, n1) {
+				if (bit & 1 << i) continue;
+				cost1[bit | 1 << i] = cost1[bit] + cost1[1 << i];
+			}
+		}
+		{ // cost2
+			cost2.resize(0);
+			cost2.resize(1 << n2, 0);
+			REP(i, n2) cost2[1 << i] = 1;
+
+			REP(bit, 1 << n2) REP(i, n2) {
+				if (bit & 1 << i) continue;
+				cost2[bit | 1 << i] = cost2[bit] + cost2[1 << i];
+			}
+		}
+
+		{ // dp
+			dp.resize(0);
+			dp.resize(1 << n2, 0);
+			REP(bit, 1 << n2) if (ok2[bit]) dp[bit] = cost2[bit];
+
+			REP(bit, 1 << n2) REP(i, n2) {
+				if (bit & 1 << i) continue;
+				dp[bit | 1 << i] = std::max(dp[bit | 1 << i], dp[bit]);
+			}
+		}
+
+		int res = 0;
+		REP(bit, 1 << n1) {
+			if (!ok1[bit]) continue;
+			res = std::max(res, cost1[bit] + dp[set[bit]]);
+		}
+		return res;
+	}
+};]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

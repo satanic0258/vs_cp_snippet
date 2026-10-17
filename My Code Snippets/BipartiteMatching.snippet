@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>BipartiteMatching</Title>
+      <Author>[USERNAME]</Author>
+      <Description>二部マッチングを求める．O(|V||E|)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPBipartiteMatching</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[// ## add_edge -> solve
+struct BipartiteMatching {
+	int V;
+	std::vector<std::vector<int>> g;
+	std::vector<int> match; // ## (i, match[i]) is matching pair
+	std::vector<bool> used;
+
+	BipartiteMatching(int v) : V(v), g(v), match(v, -1), used(v, false) {}
+
+	void add_edge(int u, int v) {
+		g[u].emplace_back(v);
+		g[v].emplace_back(u);
+	}
+
+	bool dfs(int v) {
+		used[v] = true;
+		for (auto& to : g[v]) {
+			int u = match[to];
+			if (u < 0 || (!used[u] && dfs(u))) {
+				match[v] = to;
+				match[to] = v;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	int solve() {
+		match.assign(V, -1);
+		int res = 0;
+		bool flag;
+		do {
+			flag = true;
+			used.assign(V, false);
+			for (int v = 0; v < V; ++v) if (match[v] < 0 && dfs(v)) ++res, flag = false;
+		} while (!flag);
+		return res;
+	}
+};]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>nextcombination</Title>
+      <Author>[USERNAME]</Author>
+      <Description>次のコンビネーションを求める。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPnextcombination</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[bool next_combination(std::vector<int>& v, int n) {
+	int k = v.size();
+	int p = k - 1;
+	if (v[p] >= n) return false;
+	while (p >= 0 && ++v[p] >= n - (k - p - 1)) --p;
+	if (p < 0) return false;
+	++p;
+	while (p < k) {
+		v[p] = v[p - 1] + 1;
+		++p;
+	}
+	return true;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>isPrime</Title>
+      <Author>[USERNAME]</Author>
+      <Description>素数かどうか判定する。O(√N)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPisPrime</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[bool isPrime(ll n) {
+	if (n < 2) return false;
+	for (ll i = 2; i * i <= n; ++i) {
+		if (n % i == 0) return false;
+	}
+	return true;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

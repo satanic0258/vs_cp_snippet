@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>ModInt</Title>
+      <Author>[USERNAME]</Author>
+      <Description>常に法を取る整数クラス。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPModInt</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[class ModInt {
+	friend std::istream& operator>>(std::istream& is, ModInt& obj);
+private:
+	inline ModInt& normUpper() { if (val >= MOD) val -= MOD; return *this; }
+	inline ModInt& normLower() { if (val < 0) val += MOD; return *this; }
+	inline ModInt& norm() { return normUpper(), normLower(); }
+public:
+	constexpr static int numOfPrecalc = 1000006;
+	static ModInt inv[numOfPrecalc];
+	static ModInt fact[numOfPrecalc];
+	static ModInt factInv[numOfPrecalc];
+	int val;
+	ModInt() : val(0) {}
+	ModInt(int n) : val(n) { if (n >= MOD || n <= -MOD) n %= MOD; norm(); }
+	ModInt(long long n) : ModInt((int)(n% MOD)) {}
+	ModInt& operator=(const ModInt& r) { val = r.val; return *this; }
+	ModInt operator+() const { return *this; }
+	ModInt operator-() const { return ModInt(MOD - val); }
+	ModInt& operator+=(const ModInt& r) { val += r.val; return normUpper(); }
+	ModInt& operator-=(const ModInt& r) { val -= r.val; return normLower(); }
+	ModInt& operator*=(const ModInt& r) { val = (long long)val * r.val % MOD; return *this; }
+	ModInt& operator/=(ModInt r) { return *this *= (r.val < numOfPrecalc) ? inv[r.val] : (r ^= MOD - 2); }
+	ModInt& operator^=(int p) {
+		assert(p >= 0);
+		ModInt t(*this); *this = 1;
+		for (; p; p >>= 1, t *= t) if (p & 1) *this *= t;
+		return *this;
+	}
+	const ModInt operator+(const ModInt& r) const { return ModInt(*this) += r; }
+	const ModInt operator-(const ModInt& r) const { return ModInt(*this) -= r; }
+	const ModInt operator*(const ModInt& r) const { return ModInt(*this) *= r; }
+	const ModInt operator/(const ModInt& r) const { return ModInt(*this) /= r; }
+	const ModInt operator^(int p) const { return ModInt(*this) ^= p; }
+	bool operator==(const ModInt& r) const { return val == r.val; }
+	bool operator==(const int r) const { return *this == ModInt(r); }
+	bool operator!=(const ModInt& r) const { return val != r.val; }
+	bool operator!=(const int r) const { return *this != ModInt(r); }
+};
+const ModInt operator+(long long l, const ModInt& r) { return ModInt(l) += r; }
+const ModInt operator-(long long l, const ModInt& r) { return ModInt(l) -= r; }
+const ModInt operator*(long long l, const ModInt& r) { return ModInt(l) *= r; }
+const ModInt operator/(long long l, const ModInt& r) { return ModInt(l) /= r; }
+const ModInt operator+(int l, const ModInt& r) { return ModInt(l) += r; }
+const ModInt operator-(int l, const ModInt& r) { return ModInt(l) -= r; }
+const ModInt operator*(int l, const ModInt& r) { return ModInt(l) *= r; }
+const ModInt operator/(int l, const ModInt& r) { return ModInt(l) /= r; }
+
+std::ostream& operator<<(std::ostream& os, const ModInt& obj) { return os << obj.val; }
+/* friend */ std::istream& operator>>(std::istream& is, ModInt& obj) {
+	is >> obj.val; obj.norm();
+	return is;
+}
+ModInt ModInt::inv[ModInt::numOfPrecalc];
+ModInt ModInt::fact[ModInt::numOfPrecalc];
+ModInt ModInt::factInv[ModInt::numOfPrecalc];
+struct Init_ModInt {
+	Init_ModInt() {
+		// inv
+		ModInt::inv[1] = 1;
+		for (int i = 2; i < ModInt::numOfPrecalc; ++i) ModInt::inv[i] = (MOD - MOD / i) * ModInt::inv[MOD % i];
+
+		// fact
+		ModInt::fact[0] = 1;
+		ModInt::factInv[0] = 1;
+		for (int i = 1; i < ModInt::numOfPrecalc; ++i) {
+			ModInt::fact[i] = ModInt::fact[i - 1] * i;
+			ModInt::factInv[i] = ModInt::factInv[i - 1] * ModInt::inv[i];
+		}
+	}
+} _init_modint;
+
+ModInt Permutation(int n, int r) {
+	if (n < 0 || r < 0 || n < r) return 0;
+	return ModInt::fact[n] * ModInt::factInv[n - r];
+}
+ModInt Combination(int n, int r) {
+	if (n < 0 || r < 0 || n < r) return 0;
+	return ModInt::fact[n] * ModInt::factInv[n - r] * ModInt::factInv[r];
+}
+ModInt CombinationWithRepetition(ll n, ll r) {
+	return Combination(n + r - 1, r);
+}
+/** ModInt **/]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

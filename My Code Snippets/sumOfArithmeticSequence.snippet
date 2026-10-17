@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>sumOfArithmeticSequence</Title>
+      <Author>[USERNAME]</Author>
+      <Description>等差数列の和を計算する．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPsumOfArithmeticSequence</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[template <class T>
+T sumOfArithmeticSequence(T a0, T d, int n) {
+  return a0 * n + (n - 1) * n / 2 * d;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

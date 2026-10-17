@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>MaxIndependentSet</Title>
+      <Author>[USERNAME]</Author>
+      <Description>グラフの最大独立集合サイズを求める．O(n 1.466^n)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPMaxIndependentSet</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[class MaxIndependentSet {
+	using B = long long;
+	int n;
+	std::vector<B> g;
+
+	int dfs(B rest, int cnt) {
+		int res = 0;
+		for (bool update = true; update; ) {
+			update = false;
+			for (int i = 0; i < n; ++i) if (rest & 1ll << i) {
+				int deg = __builtin_popcountll(rest & g[i]);
+				if (deg <= 1) {
+					++cnt;
+					rest &= ~(g[i] | 1ll << i);
+					update = true;
+				}
+			}
+		}
+		res = std::max(res, cnt);
+		if (rest) {
+			int k = __builtin_ctzll(rest);
+			res = std::max(res, dfs(rest & ~(1ll << k), cnt));
+			res = std::max(res, dfs(rest & ~(g[k] | 1ll << k), cnt + 1));
+		}
+		return res;
+	}
+
+public:
+	MaxIndependentSet(const std::vector<std::vector<int>> & g_) : n(g_.size()), g(n, 0ll) {
+		for (int i = 0; i < n; ++i) {
+			for (auto& to : g_[i]) {
+				g[i] |= 1ll << to;
+				g[to] |= 1ll << i;
+			}
+		}
+	}
+
+
+	int calc() {
+		return dfs((1ll << n) - 1, 0);
+	}
+};]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

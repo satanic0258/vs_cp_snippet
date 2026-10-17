@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>isPalindromic</Title>
+      <Author>[USERNAME]</Author>
+      <Description>与えられた文字列Sが回文かどうか判定する。O(|S|/2)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPisPalindromic</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[bool isPalindromic(const std::string& s) {
+	size_t sn = s.size();
+	size_t n = sn / 2;
+	for (size_t i = 0; i < n; ++i) {
+		if (s[i] != s[sn - i - 1]) return false;
+	}
+	return true;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

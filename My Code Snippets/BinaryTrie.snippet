@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>BinaryTrie</Title>
+      <Author>[USERNAME]</Author>
+      <Description>2進数を管理するTrie木。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPBinaryTrie</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[template<int N>
+class BinaryTrie {
+	struct Node {
+		Node* ch[2];
+		int sz;
+		std::bitset<N> lazy;
+
+		Node() : sz(0), lazy(0) {
+			ch[0] = ch[1] = nullptr;
+		}
+	};
+	Node* root;
+
+	void propagate(Node* p, int bitpos) {
+		if (p->lazy[bitpos]) std::swap(p->ch[0], p->ch[1]);
+		if (p->ch[0]) p->ch[0]->lazy ^= p->lazy;
+		if (p->ch[1]) p->ch[1]->lazy ^= p->lazy;
+		p->lazy = 0;
+	}
+	void deleteTree(Node* p) {
+		if (p == nullptr) return;
+		deleteTree(p->ch[0]);
+		deleteTree(p->ch[1]);
+		delete p;
+	}
+
+public:
+	BinaryTrie() : root(new Node()) { }
+	~BinaryTrie() { deleteTree(root); }
+
+	void clear() {
+		deleteTree(root->ch[0]);
+		deleteTree(root->ch[1]);
+	}
+
+	int size() {
+		return root->sz;
+	}
+
+	void add(const std::bitset<N>& bit) {
+		Node* p = root;
+		++p->sz;
+		for (int i = N - 1; i >= 0; --i) {
+			propagate(p, i);
+			if (!p->ch[bit[i]]) p->ch[bit[i]] = new Node();
+			p = p->ch[bit[i]];
+			++p->sz;
+		}
+	}
+
+	void del(const std::bitset<N>& bit) {
+		Node* p = root;
+		for (int i = N - 1; i >= 0; --i) {
+			propagate(p, i);
+			if (!p->ch[bit[i]]) return;
+			p = p->ch[bit[i]];
+		}
+		p = root;
+		--p->sz;
+		for (int i = N - 1; i >= 0; --i) {
+			if (--p->ch[bit[i]]->sz == 0) {
+				deleteTree(p->ch[bit[i]]);
+				p->ch[bit[i]] = nullptr;
+				break;
+			}
+			p = p->ch[bit[i]];
+		}
+	}
+
+	void xorall(const std::bitset<N>& bit) {
+		root->lazy ^= bit;
+	}
+
+	std::bitset<N> min() {
+		std::bitset<N> res(0);
+		Node* p = root;
+		for (int i = N - 1; i >= 0; --i) {
+			propagate(p, i);
+			if (p->ch[0]) p = p->ch[0];
+			else res[i] = 1, p = p->ch[1];
+		}
+		return res;
+	}
+
+	std::bitset<N> max() {
+		std::bitset<N> res(0);
+		Node* p = root;
+		for (int i = N - 1; i >= 0; --i) {
+			propagate(p, i);
+			if (p->ch[1]) res[i] = 1, p = p->ch[1];
+			else p = p->ch[0];
+		}
+		return res;
+	}
+};]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

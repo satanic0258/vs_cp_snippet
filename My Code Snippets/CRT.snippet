@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>CRT</Title>
+      <Author>
+      </Author>
+      <Description>連立線形合同式x≡b[i](mod m[i])を解く．O(Σlog(m[i]))．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPCRT</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[// O( sum_i{ log(m[i]) } )
+namespace CRT {
+	using ll = long long;
+
+	// O(log(min(a,b)))
+	long long extgcd(ll a, ll b, ll& x, ll& y) {
+		if (b == 0) { x = 1; y = 0; return a; }
+		ll g = extgcd(b, a % b, y, x);
+		y -= a / b * x;
+		return g;
+	}
+
+	// solve [ x = b[i] (mod m[i]) ]
+	// return (R,  M) : x = R (mod M)
+	//        (0, -1) : no solution
+	// O( sum_i{ log(b[i]) } )
+	std::pair<ll, ll> calc(const std::vector<ll>& b, const std::vector<ll>& m) {
+		ll R = 0, M = 1;
+		for (size_t i = 0; i < b.size(); ++i) {
+			ll x, y;
+			ll g = extgcd(M, m[i], x, y);
+			if ((b[i] - R) % g != 0) return std::make_pair(0LL, -1LL);
+			R += (b[i] - R) / g * x % (m[i] / g) * M;
+			M *= m[i] / g;
+		}
+		R %= M;
+		if (R < 0) R += M;
+		return std::make_pair(R, M);
+	}
+}; // !!CHECK!!  LCM(m[i]) is NOT overflow, is it?
+// see also -> Garner]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

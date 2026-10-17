@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>gcd</Title>
+      <Author>[USERNAME]</Author>
+      <Description>ユークリッドの互除法を用いてgcd(a, b)を計算する。O(log(min(a, b)))。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPgcd</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[ll gcd(ll a, ll b) {
+	return b ? gcd(b, a%b) : a;
+}
+ll lcm(ll a, ll b) {
+	return a / gcd(a, b) * b;
+}
+]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

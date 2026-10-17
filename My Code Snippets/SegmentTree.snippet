@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>SegmentTree</Title>
+      <Author>[USERNAME]</Author>
+      <Description>セグメント木を用いて区間内の最大値/最小値/合計を計算する。O(logN)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPSegmentTree</Shortcut>
+    </Header>
+    <Snippet>
+      <Declarations>
+      </Declarations>
+      <Code Language="cpp" Delimiter="$"><![CDATA[// ------------>8------------ SegmentTree ------------>8------------
+
+namespace Monoid {
+	template <class T> class sum {
+	public:
+		using value_type = T;
+		inline static T operation(const T& a, const T& b) { return a + b; }
+		inline static T identity() { return T(0); }
+	};
+	template <class T> class max {
+	public:
+		using value_type = T;
+		inline static T operation(const T& a, const T& b) { return (a < b) ? b : a; }
+		inline static T identity() { return std::numeric_limits<T>::lowest(); }
+	};
+	template <class T> class min {
+	public:
+		using value_type = T;
+		inline static T operation(const T& a, const T& b) { return (a < b) ? a : b; }
+		inline static T identity() { return std::numeric_limits<T>::max(); }
+	};
+
+	class MONOID {
+	public:
+		struct S { int x; };
+		using value_type = S;
+		inline static S operation(const S& l, const S& r) { return S{ l.x + r.x }; }
+		inline static S identity() { return S{ 0 }; }
+	};
+}
+template <class Monoid>
+class SegmentTree {
+private:
+	using T = typename Monoid::value_type;
+	int ARY_SIZE;
+	std::vector<T> ary;
+
+	void init(int n) {
+		while (ARY_SIZE < n) ARY_SIZE <<= 1;
+		ary.resize(ARY_SIZE << 1, Monoid::identity());
+	}
+public:
+	SegmentTree(int n) : ARY_SIZE(1) { init(n); }
+	SegmentTree(std::vector<T>& a) : ARY_SIZE(1) {
+		init(a.size());
+		std::copy(a.begin(), a.end(), ary.begin() + ARY_SIZE);
+		for (int i = ARY_SIZE - 1; i >= 1; --i) {
+			ary[i] = Monoid::operation(ary[i << 1], ary[(i << 1) + 1]);
+		}
+	}
+
+	// -- a[i] = val;
+	inline void update(int i, T val) {
+		i += ARY_SIZE;
+		ary[i] = val;
+		while (i > 1) {
+			i >>= 1;
+			ary[i] = Monoid::operation(ary[i << 1], ary[(i << 1) + 1]);
+		}
+	}
+	// -- a[i] += val;
+	inline void add(int i, T val) {
+		update(i, ary[i + ARY_SIZE] + val);
+	}
+	// -- [l, r)
+	inline T query(int l, int r) {
+		if (l >= r) return Monoid::identity();
+		T vl = Monoid::identity(), vr = Monoid::identity();
+		for (l += ARY_SIZE, r += ARY_SIZE; l != r; l >>= 1, r >>= 1) {
+			if (l & 1) vl = Monoid::operation(vl, ary[l++]);
+			if (r & 1) vr = Monoid::operation(ary[--r], vr);
+		}
+		return Monoid::operation(vl, vr);
+	}
+	T operator[](int i) { return ary[i + ARY_SIZE]; }
+
+	void debugShow() {
+		for (int i = ARY_SIZE; i < ARY_SIZE << 1; ++i) std::cerr << ary[i] << " ";
+		std::cerr << "\n";
+	}
+};
+// ------------8<------------ SegmentTree ------------8<------------]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

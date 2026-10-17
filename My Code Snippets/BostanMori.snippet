@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>BostanMori</Title>
+      <Description>高々K次の多項式P,Qに対し[x^N]P(x)/Q(x)をO(KlogKlogN)で求める．要Polynomial,NTT．</Description>
+      <Shortcut>SNIPBostanMori</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+		  <![CDATA[// get [X^N]P(X)/Q(X) in O(k logk logN) where k=deg(Q)
+ModInt BostanMori(i64 N, FPS P, FPS Q) {
+	int p = 0;
+	while (Q[p] == 0) ++p;
+	Q.erase(Q.begin(), Q.begin() + p);
+	N += p;
+	while (N) {
+		FPS Q1(Q);
+		REP(i, Q.size()) if (i % 2 == 1) Q1[i] = MOD - Q1[i];
+		auto v = P * Q1;
+		P.resize(0);
+		REP(i, v.size()) if (i % 2 == (N & 1)) P.emplace_back(v[i]);
+		v = Q * Q1;
+		Q.resize(0);
+		REP(i, v.size()) if (i % 2 == 0) Q.emplace_back(v[i]);
+		N >>= 1;
+	}
+	return P[0];
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

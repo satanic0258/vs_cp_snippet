@@ -1,0 +1,369 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>Simplex</Title>
+      <Description>シンプレックス法．線形計画問題を解く．</Description>
+      <Shortcut>SNIPSimplex</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[class SimplexSolver {
+private:
+    int num_vars;    // 元の変数数
+    int num_cons;    // ユーザが作成した制約数
+
+    // ユーザ設定の目的関数： maximize z = obj*x + obj_const
+    std::vector<long double> obj;
+    long double obj_const = 0;
+
+    // 各制約は，左辺の係数 (A_i x) を表す．
+    std::vector<std::vector<long double>> constraints;
+    // 制約ごとの下限，上限（初期値：下限は -∞，上限は +∞）
+    std::vector<long double> lowerBounds;
+    std::vector<long double> upperBounds;
+
+    // 解が求まったかどうか，および最適解（元変数の値），目的値
+    bool solved = false;
+    long double optimum = 0;
+    std::vector<long double> solution; // 各元変数の最適解
+
+    const long double EPS = 1e-13;
+
+    // 内部構造：ユーザ定義の制約を1行にまとめたもの
+    struct Row {
+        std::vector<long double> coeffs; // 長さ num_vars (元変数の係数)
+        long double rhs;                 // 右辺（upper または lower）
+        bool isLE;                     // trueなら「Ax <= rhs」（上限制約），falseなら「Ax >= rhs」
+    };
+
+    // 共通の単体法ルーチン（Phase I/II 共通）
+    // できるだけ参照を用いて内部ループのオーバーヘッドを削減．
+    void simplex(std::vector<std::vector<long double>> & tab, std::vector<int> & basis) {
+        const int R = static_cast<int>(tab.size());
+        const int C = static_cast<int>(tab[0].size());
+        while (true) {
+            int pivot_col = -1;
+            // 目的関数行から改善方向の変数を探索（j=0～C-2：RHS列は除く）
+            for (int j = 0; j < C - 1; j++) {
+                if (tab[0][j] > EPS) { pivot_col = j; break; }
+            }
+            if (pivot_col == -1) break; // 改善不能
+
+            int pivot_row = -1;
+            long double min_ratio = std::numeric_limits<long double>::infinity();
+            for (int i = 1; i < R; i++) {
+                long double colVal = tab[i][pivot_col];
+                if (colVal > EPS) {
+                    long double ratio = tab[i][C - 1] / colVal;
+                    if (ratio < min_ratio) {
+                        min_ratio = ratio;
+                        pivot_row = i;
+                    }
+                }
+            }
+            if (pivot_row == -1)
+                throw std::runtime_error("The linear program is unbounded during simplex.");
+
+            // ピボット操作：まずは，ピボット行を正規化
+            long double pv = tab[pivot_row][pivot_col];
+            std::vector<long double> & pivotRowData = tab[pivot_row];
+            for (int j = 0; j < C; j++) {
+                pivotRowData[j] /= pv;
+            }
+            // 他の各行について，ピボット行の寄与を除去
+            for (int i = 0; i < R; i++) {
+                if (i == pivot_row) continue;
+                long double factor = tab[i][pivot_col];
+                if (std::abs(factor) > EPS) {
+                    std::vector<long double> & rowData = tab[i];
+                    for (int j = 0; j < C; j++) {
+                        rowData[j] -= factor * pivotRowData[j];
+                    }
+                }
+            }
+            basis[pivot_row - 1] = pivot_col;
+        }
+    }
+
+public:
+    SimplexSolver() : num_vars(0), num_cons(0) { }
+
+    // 新しい変数を作成
+    int createVariable() {
+        num_vars++;
+        obj.push_back(0);
+        for (auto & row : constraints)
+            row.push_back(0);
+        return num_vars - 1;
+    }
+
+    // 新しい制約（ユーザが作成した制約）を作成
+    int createConstraint() {
+        num_cons++;
+        constraints.push_back(std::vector<long double>(num_vars, 0));
+        lowerBounds.push_back(-std::numeric_limits<long double>::infinity());
+        upperBounds.push_back(std::numeric_limits<long double>::infinity());
+        return num_cons - 1;
+    }
+
+    // 制約 (constraint_idが-1なら目的関数) の係数設定
+    void setCoefficient(int constraint_id, int variable_id, long double coef_val) {
+        if (constraint_id == -1) {
+            if (variable_id < 0 || variable_id >= num_vars)
+                throw std::out_of_range("Objective: variable index out of range");
+            obj[variable_id] = coef_val;
+        }
+        else {
+            if (constraint_id < 0 || constraint_id >= num_cons)
+                throw std::out_of_range("Constraint index out of range");
+            if (variable_id < 0 || variable_id >= num_vars)
+                throw std::out_of_range("Constraint: variable index out of range");
+            constraints[constraint_id][variable_id] = coef_val;
+        }
+    }
+
+    // 下限・上限の設定
+    void setLowerBound(int constraint_id, long double lb_val) {
+        if (constraint_id < 0 || constraint_id >= num_cons)
+            throw std::out_of_range("Constraint index out of range");
+        lowerBounds[constraint_id] = lb_val;
+    }
+
+    void setUpperBound(int constraint_id, long double ub_val) {
+        if (constraint_id < 0 || constraint_id >= num_cons)
+            throw std::out_of_range("Constraint index out of range");
+        upperBounds[constraint_id] = ub_val;
+    }
+
+    // --- 二段階シンプレックス法による solve() ---
+    void solve() {
+        // 1. ユーザ制約から「行」を構成する
+        std::vector<Row> rows;
+        rows.reserve(num_cons * 2);
+        for (int i = 0; i < num_cons; i++) {
+            if (upperBounds[i] < std::numeric_limits<long double>::infinity()) {
+                rows.push_back(Row{ constraints[i], upperBounds[i], true });
+            }
+            if (lowerBounds[i] > -std::numeric_limits<long double>::infinity()) {
+                rows.push_back(Row{ constraints[i], lowerBounds[i], false });
+            }
+        }
+        const int m = static_cast<int>(rows.size()); // 制約行数
+        const int n = num_vars;    // 元変数数
+
+        // 2. 各行を標準形（等式）に変換する
+        int countLE = 0, countGE = 0;
+        for (auto & r : rows) {
+            if (r.isLE)
+                countLE++;
+            else
+                countGE++;
+        }
+        // Phase I 用の変数配置
+        const int col_slack = n;                   // スラック変数: countLE 個
+        const int col_surplus = col_slack + countLE; // surplus変数: countGE 個
+        const int col_artif = col_surplus + countGE; // 人工変数: countGE 個
+        const int total_cols_phase1 = n + countLE + countGE + countGE + 1; // +1はRHS
+        const int total_rows_phase1 = m + 1; // 1行目は目的関数行
+
+        // Phase I の単体表 (tab1) を構築
+        std::vector<std::vector<long double>> tab1(total_rows_phase1, std::vector<long double>(total_cols_phase1, 0));
+        std::vector<int> basis(m, -1); // 各制約行の基底変数番号
+        int le_idx = 0, ge_idx = 0;
+        for (int i = 0; i < m; i++) {
+            // 行 i+1 に対応．元変数の係数をコピー
+            for (int j = 0; j < n; j++) {
+                tab1[i + 1][j] = rows[i].coeffs[j];
+            }
+            if (rows[i].isLE) {
+                // LE: Ax + s = rhs
+                tab1[i + 1][col_slack + le_idx] = 1;
+                basis[i] = col_slack + le_idx;
+                le_idx++;
+            }
+            else {
+                // GE: Ax - r + a = rhs
+                tab1[i + 1][col_surplus + ge_idx] = -1;
+                tab1[i + 1][col_artif + ge_idx] = 1;
+                basis[i] = col_artif + ge_idx;
+                ge_idx++;
+            }
+            // 右辺の設定
+            tab1[i + 1][total_cols_phase1 - 1] = rows[i].rhs;
+        }
+        // Phase I の目的関数行：人工変数の総和を最小化（最大化にするため -1 をセット）
+        for (int i = 0; i < countGE; i++) {
+            tab1[0][col_artif + i] = -1;
+        }
+        // 初期基底に人工変数がある行の調整
+        for (int i = 0; i < m; i++) {
+            int bv = basis[i];
+            if (bv >= col_artif && bv < col_artif + countGE) {
+                for (int j = 0; j < total_cols_phase1; j++) {
+                    tab1[0][j] += tab1[i + 1][j];
+                }
+            }
+        }
+
+        // 3. Phase I を解く
+        simplex(tab1, basis);
+        if (std::abs(tab1[0][total_cols_phase1 - 1]) > EPS)
+            throw std::runtime_error("The linear program is infeasible.");
+
+        // 4. Phase I 終了後，人工変数の列を除去し Phase II 用の表 (tab2) を構築
+        const int total_cols_phase2 = n + countLE + countGE + 1; // +1はRHS
+        std::vector<std::vector<long double>> tab2(total_rows_phase1, std::vector<long double>(total_cols_phase2, 0));
+        for (int i = 0; i < total_rows_phase1; i++) {
+            // 元変数
+            for (int j = 0; j < n; j++)
+                tab2[i][j] = tab1[i][j];
+            // スラック変数
+            for (int j = 0; j < countLE; j++)
+                tab2[i][n + j] = tab1[i][col_slack + j];
+            // surplus変数
+            for (int j = 0; j < countGE; j++)
+                tab2[i][n + countLE + j] = tab1[i][col_surplus + j];
+            // RHS
+            tab2[i][total_cols_phase2 - 1] = tab1[i][total_cols_phase1 - 1];
+        }
+        // 基底の列番号更新（人工変数を除去）
+        for (int i = 0; i < m; i++) {
+            int bv = basis[i];
+            if (bv >= col_artif && bv < col_artif + countGE) {
+                int row_idx = i + 1;
+                // 人工変数が基底の行について，新たな有効な基底候補を探す
+                for (int j = 0; j < total_cols_phase2 - 1; j++) {
+                    bool used = false;
+                    for (int k = 0; k < m; k++) {
+                        if (k == i) continue;
+                        if (basis[k] == j) { used = true; break; }
+                    }
+                    if (!used && std::abs(tab2[row_idx][j]) > EPS) {
+                        long double pv = tab2[row_idx][j];
+                        for (int col = 0; col < total_cols_phase2; col++)
+                            tab2[row_idx][col] /= pv;
+                        for (int r = 0; r < total_rows_phase1; r++) {
+                            if (r == row_idx) continue;
+                            long double fac = tab2[r][j];
+                            for (int col = 0; col < total_cols_phase2; col++)
+                                tab2[r][col] -= fac * tab2[row_idx][col];
+                        }
+                        basis[i] = j;
+                        break;
+                    }
+                }
+            }
+            else if (bv >= col_slack && bv < col_slack + countLE) {
+                basis[i] = n + (bv - col_slack);
+            }
+            // 元変数はそのまま
+        }
+
+        // 5. Phase II: 目的関数を組み込み最適化
+        std::vector<long double> objRow(total_cols_phase2, 0);
+        for (int j = 0; j < n; j++)
+            objRow[j] = -obj[j];  // 単体法では目的関数行に -obj を記述
+        objRow[total_cols_phase2 - 1] = obj_const;
+        // 基底変数の影響を除去
+        for (int i = 0; i < m; i++) {
+            int bv = basis[i];
+            long double coeff = objRow[bv];
+            if (std::abs(coeff) > EPS) {
+                for (int j = 0; j < total_cols_phase2; j++) {
+                    objRow[j] -= coeff * tab2[i + 1][j];
+                }
+            }
+        }
+        tab2[0] = objRow;
+
+        // Phase II を単体法で解く
+        simplex(tab2, basis);
+
+        // 6. 解の抽出：元の変数は列 0 ... n-1
+        solution.assign(n, 0);
+        for (int i = 0; i < m; i++) {
+            int bv = basis[i];
+            if (bv < n) {
+                solution[bv] = tab2[i + 1][total_cols_phase2 - 1];
+            }
+        }
+        optimum = tab2[0][total_cols_phase2 - 1];
+        solved = true;
+    }
+
+    // 最適化実行後の目的値を返す
+    long double getObjValue() {
+        if (!solved)
+            throw std::runtime_error("The problem has not been solved yet.");
+        return optimum;
+    }
+
+    // 最適化実行後の指定変数の値を返す
+    long double getValue(int variable_id) {
+        if (!solved)
+            throw std::runtime_error("The problem has not been solved yet.");
+        if (variable_id < 0 || variable_id >= num_vars)
+            throw std::out_of_range("Variable index out of range");
+        return solution[variable_id];
+    }
+};
+/* 使い方
+### 変数定義
+- 変数ごとに`createVariable()`で変数番号を取得
+
+### 目的関数
+- `setCoefficient(-1, x, c)`で目的関数の`x`の係数を`c`にする
+
+### 制約条件
+- 制約ごとに`createConstraint()`で制約番号を取得
+- `setCoefficient(i, x, a)`で制約番号`i`の`x`の係数を`a`にする
+- `setLowerBound(i, b)`で制約番号`i`の下限値(定数項)を`b`にする
+- `setUpperBound(i, b)`で制約番号`i`の上限値(定数項)を`b`にする
+
+### 最適化
+- `solve()`で最適化を実行
+
+### 結果取得
+- `getObjValue()`で最適値を取得
+- `getValue(x)`で最適解の`x`の値を取得
+
+### サンプル
+```cpp
+int main() {
+    SimplexSolver solver;
+
+    // 変数の作成 (変数番号を返り値で受け取っておく)
+    int x = solver.createVariable();
+    int y = solver.createVariable();
+
+    // 目的関数の設定: maximize z = 3*x + 2*y
+    // setCoefficientの第一引数を-1にすると目的関数を設定
+    solver.setCoefficient(-1, x, 3);
+    solver.setCoefficient(-1, y, 2);
+
+    // 制約の作成
+    int c1 = solver.createConstraint();
+    // 制約: 2*x + y <= 100
+    solver.setCoefficient(c1, x, 2);
+    solver.setCoefficient(c1, y, 1);
+    solver.setLowerBound(c1, 50);
+    solver.setUpperBound(c1, 100);
+
+    // 最適化実行
+    solver.solve();
+
+    // 結果の取得
+    std::cout << "Optimal Objective Value: " << solver.getObjValue() << "\n";
+    std::cout << "x = " << solver.getValue(x) << "\n";
+    std::cout << "y = " << solver.getValue(y) << "\n";
+
+    return 0;
+}
+```
+*/]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

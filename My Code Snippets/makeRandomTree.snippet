@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>makeRandomTree</Title>
+      <Author>[USERNAME]</Author>
+      <Description>ランダムな木を生成する．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>DEBUGmakeRandomTree</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[#ifdef DEBUG // make random tree
+	{
+		int n = 30;
+		std::mt19937 mt(static_cast<unsigned>(time(nullptr)));
+		std::uniform_int_distribution<> randEdge(/* min */1, /* max */n - 1);
+
+		OUT(n)BR;
+		FOR(i, 2, n + 1) {
+			std::uniform_int_distribution<> rand(1, i - 1);
+			OUT(rand(mt))SP OUT(i)BR;
+		}
+
+		return 0;
+	}
+#endif // DEBUG]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

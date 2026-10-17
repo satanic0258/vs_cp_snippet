@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>Zalgorithm</Title>
+      <Author>[USERNAME]</Author>
+      <Description>SとS[i:|S|)の最長共通接頭辞の長さを線形で構築する．O(|S|)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPZalgorithm</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[std::vector<int> Zalgorithm(const std::string& s) {
+	std::vector<int> z(s.size());
+	z[0] = s.size();
+	int i = 1, j = 0;
+	while (i < s.size()) {
+		while (i + j < s.size() && s[j] == s[i + j]) ++j;
+		z[i] = j;
+		if (j == 0) { ++i; continue; }
+		int k = 1;
+		while (i + k < s.size() && k + z[k] < j) z[i + k] = z[k], ++k;
+		i += k; j -= k;
+	}
+	return z;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

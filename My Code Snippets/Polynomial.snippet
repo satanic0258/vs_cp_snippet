@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>Polynomial</Title>
+      <Author>[USERNAME]</Author>
+      <Description>多項式クラス．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPPolynomial</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[template<class T>
+class Polynomial {
+public:
+	std::vector<T> coef;
+	Polynomial() : coef(1, 0) {}
+	Polynomial(int N) : coef(N + 1, 0) {}
+	Polynomial(std::initializer_list<int> a) : coef(a) {}
+	Polynomial& operator+=(const Polynomial& r) {
+		if (coef.size() < r.coef.size()) coef.resize(r.coef.size());
+		for (size_t i = 0; i < r.coef.size(); ++i) coef[i] += r.coef[i];
+		return *this;
+	}
+	Polynomial& operator*=(const Polynomial & r) { // O(N^2)
+		std::vector<T> c(this->coef.size() + r.coef.size() - 1);
+		REP(i, this->coef.size()) REP(j, r.coef.size()) c[i + j] += this->coef[i] * r.coef[j];
+		coef = c;
+		return *this;
+	}
+	/*Polynomial & operator*=(const Polynomial & r) { // O(NlogN)
+		coef = NTT::mul(this->coef, r.coef, MOD);
+		return *this;
+	}*/
+	Polynomial& mul_sparse(const std::map<int, T> & r) {
+		assert(r[0] == 1);
+		size_t sz = coef.size();
+		size_t rsz = r.rbegin()->first;
+		coef.resize(sz + rsz, 0);
+		for (int i = sz + rsz - 1; i >= 0; --i) {
+			for (const auto& p : r) if (p.first != 0) {
+				if (i >= p.first) coef[i] += p.second * coef[i - p.first];
+			}
+		}
+		return *this;
+	}
+	Polynomial& div_sparse(const std::map<int, T> & r, int sz = -1) {
+		assert(r[0] == 1);
+		if (sz == -1) sz = coef.size();
+		for (size_t i = 0; i < sz; ++i) {
+			for (const auto& p : r) if (p.first != 0) {
+				if (i >= p.first) coef[i] -= p.second * coef[i - p.first];
+			}
+		}
+		return *this;
+	}
+	Polynomial& operator^=(long long p) {
+		Polynomial x(*this);
+		*this = Polynomial(0);
+		coef[0] = 1;
+		while (p) {
+			if (p & 1) (*this) *= x;
+			x *= x;
+			p >>= 1;
+		}
+		return *this;
+	}
+	T& operator[](size_t i) { return coef[i]; }
+	std::vector<T> getCoef() const { return coef; }
+};]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

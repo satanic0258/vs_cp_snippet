@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>Mo</Title>
+      <Author>[USERNAME]</Author>
+      <Description>Mo．伸縮にO(c)掛かるときO(c (N+Q) sqrt(N))．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPMo</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[class Mo {
+	std::vector<int> Ls, Rs, o;
+	std::vector<bool> v;
+	int width;
+	int nl, nr, ptr;
+
+	inline void distribute(int idx) {
+		v[idx].flip();
+		if (v[idx]) add(idx);
+		else del(idx);
+	}
+	void add(int i);
+	void del(int i);
+
+public:
+	Mo(int n) : width((int)std::sqrt(n)), nl(0), nr(0), ptr(0), v(n) {}
+
+	// [l, r)に対するクエリを追加
+	void insert(int l, int r) {
+		Ls.emplace_back(l);
+		Rs.emplace_back(r);
+	}
+
+	// クエリをソート
+	void build() {
+		o.resize(Ls.size());
+		std::iota(o.begin(), o.end(), 0);
+		std::sort(o.begin(), o.end(), [&](int a, int b) {
+			if (Ls[a] / width != Ls[b] / width) return Ls[a] < Ls[b];
+			if (Ls[a] / width % 2 == 0) return Rs[a] < Rs[b];
+			else return Rs[a] > Rs[b];
+		});
+	}
+
+	// クエリを1つ分進めてクエリのidを返す
+	int process() {
+		if (ptr == o.size()) return -1;
+		const auto id = o[ptr];
+		while (nl > Ls[id]) distribute(--nl);
+		while (nr < Rs[id]) distribute(nr++);
+		while (nl < Ls[id]) distribute(nl++);
+		while (nr > Rs[id]) distribute(--nr);
+		return o[ptr++];
+	}
+};
+/*
+	void Mo::add(int i) { // update val }
+	void Mo::del(int i) { // update val }
+
+	Mo mo(n);
+	REP(i, Q) mo.insert(l[i], r[i]);
+	mo.build();
+	REP(i, Q) ans[mo.process()] = val;
+*/]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

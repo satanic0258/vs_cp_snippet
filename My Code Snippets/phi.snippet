@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>phi</Title>
+      <Author>[USERNAME]</Author>
+      <Description>オイラーのトーシェント関数を計算する。O(√n)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPphi</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[int phi(int n) { // O(Sqrt(n))
+	int res = n;
+	for (int i = 2; i * i <= n; ++i) {
+		if (n%i == 0) {
+			res /= i;
+			res *= i - 1;
+		}
+		while (n%i == 0) n /= i;
+	}
+	if (n != 1) {
+		res /= n;
+		res *= n - 1;
+	}
+	return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

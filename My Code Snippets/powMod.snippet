@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>powMod</Title>
+      <Author>[USERNAME]</Author>
+      <Description>フェルマーの小定理を用いてn**p % modを計算する。O(log(p))。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPpowMod</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[ll powMod(ll n, ll p, ll mod) {
+	ll res = 1;
+	while (p) {
+		if (p & 1) (res *= n) %= mod;
+		(n *= n) %= mod;
+		p >>= 1;
+	}
+	return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

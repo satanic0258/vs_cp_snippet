@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>toDecimal</Title>
+      <Author>[USERNAME]</Author>
+      <Description>2進文字列Sを10進整数に変換する。O(|S|)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPtoDecimal</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[ll toDecimal(const std::string& binary) {
+	size_t n = binary.size();
+	ll res = 0;
+	for (size_t i = 0; i < binary.size(); ++i) {
+		res += ll(binary[n - i - 1] - '0') << i;
+	}
+	return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

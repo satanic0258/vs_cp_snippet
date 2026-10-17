@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>mu</Title>
+      <Author>[USERNAME]</Author>
+      <Description>メビウス関数μ(n)．O(√n)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPmu</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[int mu(int n) {
+	if (n == 1) return 1;
+	int re = 1;
+	for (int i = 2; i*i <= n; ++i) {
+		if (n%i == 0) {
+			re *= -1;
+			n /= i;
+			if (n%i == 0) return 0;
+		}
+	}
+	if (n != 1) re *= -1;
+	return re;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

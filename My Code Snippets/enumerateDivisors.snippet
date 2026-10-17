@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>enumerateDivisors</Title>
+      <Author>[USERNAME]</Author>
+      <Description>ある正整数Nの約数を列挙する。O(Sqrt(N))。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPenumerateDivisors</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[std::vector<ll> enumerateDivisors(ll n) {
+	std::vector<ll> l, r;
+	for (ll i = 1; i * i <= n; ++i) {
+		auto d = std::div(n, i);
+		if (d.rem) continue;
+		l.emplace_back(i);
+		if(d.quot != i) r.emplace_back(d.quot);
+	}
+	l.insert(l.end(), r.rbegin(), r.rend());
+	return l;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

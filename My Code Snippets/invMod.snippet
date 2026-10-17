@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>invMod</Title>
+      <Author>[USERNAME]</Author>
+      <Description>mod逆元を求める．初めO(log(mod))．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPinvMod</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[ll powMod(ll n, ll p, ll mod) {
+	ll res = 1;
+	while (p) {
+		if (p & 1) (res *= n) %= mod;
+		(n *= n) %= mod;
+		p >>= 1;
+	}
+	return res;
+}
+std::map<int, int> inv;
+ll invMod(ll n, ll mod) {
+	if (inv.count(n)) return inv[n];
+	return inv[n] = powMod(n, mod - 2, mod);
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

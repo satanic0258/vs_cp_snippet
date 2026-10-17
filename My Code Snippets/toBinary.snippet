@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>toBinary</Title>
+      <Author>[USERNAME]</Author>
+      <Description>10進整数dを2進文字列に変換する。O(log_2(d))。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPtoBinary</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[std::string toBinary(ll decimal) {
+	if (!decimal) return "0";
+	std::string res;
+	res.reserve(64);
+	while (decimal) {
+		res += (decimal & 1) + '0';
+		decimal >>= 1;
+	}
+	std::reverse(res.begin(), res.end());
+	return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>extgcd</Title>
+      <Author>[USERNAME]</Author>
+      <Description>拡張ユークリッドの互除法を用いてax+by=gcd(a,b)となるx,y,gcd(a,b)を計算する。O(log(max(a,b)))。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPextgcd</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[ll extgcd(ll a, ll b, ll &x, ll &y) {
+	ll g = a; x = 1; y = 0;
+	if (b != 0) g = extgcd(b, a % b, y, x), y -= (a / b) * x;
+	return g;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

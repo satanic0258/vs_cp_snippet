@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>LazySegmentTree</Title>
+      <Author>[USERNAME]</Author>
+      <Description>遅延セグ木ライブラリ．区間更新,区間取得共にO(logN)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPLazySegmentTree</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[// ------------>8---------- LazySegmentTree ---------->8------------
+namespace MonoidOfValue {
+	template <class T> class sum {
+	public:
+		using value_type = T;
+		inline static T op(const T& a, const T& b) { return a + b; }
+		inline static value_type id() { return T(0); }
+	};
+	template <class T> class max {
+	public:
+		using value_type = T;
+		inline static T op(const T& a, const T& b) { return (a < b) ? b : a; }
+		inline static T id() { return std::numeric_limits<T>::lowest(); }
+	};
+	template <class T> class min {
+	public:
+		using value_type = T;
+		inline static T op(const T& a, const T& b) { return (a < b) ? a : b; }
+		inline static T id() { return std::numeric_limits<T>::max(); }
+	};
+
+	class MONOID {
+	public:
+		struct S { int x; };
+		using T = S;
+		using value_type = T;
+		inline static T op(const T& l, const T& r) { return S{ 0 }; }
+		inline static T id() { return S{ 0 }; }
+	};
+}
+namespace MonoidOfOperator {
+	template <class T> class add {
+	public:
+		using value_type = T;
+		inline static T op(const T& a, const T& b) { return a + b; }
+		inline static T id() { return T(0); }
+	};
+	template <class T> class upd {
+	public:
+		using value_type = T;
+		inline static T op(const T& a, const T& b) { return b; }
+		inline static T id() { return T(0); }
+	};
+}
+namespace ApplyOperator {
+	template <class T1, class T2> class RSQRAQ {
+	public:
+		inline static T1 op(const T1& a, const T2& b, int w) { return a + b * w; }
+	};
+	template <class T1, class T2> class RSQRUQ {
+	public:
+		inline static T1 op(const T1& a, const T2& b, int w) { return b * w; }
+	};
+	template <class T1, class T2> class RMQRAQ {
+	public:
+		inline static T1 op(const T1& a, const T2& b, int w) { return a + b; }
+	};
+	template <class T1, class T2> class RMQRUQ {
+	public:
+		inline static T1 op(const T1& a, const T2& b, int w) { return b; }
+	};
+}
+template<class MonoidOfValue, class MonoidOfOperator, template<class, class> class ApplyOperator>
+class LazySegmentTree {
+private:
+	using ValueType = typename MonoidOfValue::value_type;
+	using OperatorType = typename MonoidOfOperator::value_type;
+	using Applier = ApplyOperator<ValueType, OperatorType>;
+	std::vector<ValueType> seg;
+	std::vector<OperatorType> laz;
+	std::vector<bool> isUpdated;
+	int HEIGHT;
+	int ARY_SIZE;
+
+	void push(int k, int w) {
+		if (!isUpdated[k]) {
+			seg[k] = Applier::op(seg[k], laz[k], w);
+			if (w > 1) {
+				laz[(k << 1) + 0] = MonoidOfOperator::op(laz[(k << 1) + 0], laz[k]);
+				laz[(k << 1) + 1] = MonoidOfOperator::op(laz[(k << 1) + 1], laz[k]);
+				isUpdated[(k << 1) + 0] = false;
+				isUpdated[(k << 1) + 1] = false;
+			}
+			isUpdated[k] = true;
+			laz[k] = MonoidOfOperator::id();
+		}
+	}
+	void update(int k, int w) {
+		push(k, w);
+		if (k < ARY_SIZE) {
+			push((k << 1) + 0, w >> 1);
+			push((k << 1) + 1, w >> 1);
+			seg[k] = MonoidOfValue::op(seg[(k << 1) + 0], seg[(k << 1) + 1]);
+		}
+	}
+public:
+	LazySegmentTree(int n) {
+		init(n);
+	}
+	LazySegmentTree(const std::vector<ValueType>& a) {
+		init(a.size());
+		std::copy(std::begin(a), std::end(a), std::begin(seg) + ARY_SIZE);
+		for (int k = ARY_SIZE - 1; k > 0; --k) seg[k] = MonoidOfValue::op(seg[(k << 1) + 0], seg[(k << 1) + 1]);
+	}
+	void init(int n) {
+		HEIGHT = 0;
+		while ((1 << HEIGHT) < n) ++HEIGHT;
+		ARY_SIZE = 1 << HEIGHT;
+		seg.resize(ARY_SIZE << 1, MonoidOfValue::id());
+		laz.resize(ARY_SIZE << 1, MonoidOfOperator::id());
+		isUpdated.resize(ARY_SIZE << 1, true);
+	}
+	// ## update [l, r) with v
+	void update(int l, int r, OperatorType v) {
+		l += ARY_SIZE; r += ARY_SIZE;
+		int L = l, R = r - 1;
+		for (int i = HEIGHT; i >= 0; --i) push(L >> i, 1 << i), push(R >> i, 1 << i);
+		while (l < r) {
+			if (l & 1) laz[l] = MonoidOfOperator::op(laz[l], v), isUpdated[l] = false, ++l;
+			if (r & 1) --r, laz[r] = MonoidOfOperator::op(laz[r], v), isUpdated[r] = false;
+			l >>= 1; r >>= 1;
+		}
+		for (int i = 1; i <= HEIGHT; ++i) {
+			push(L >> i, 1 << i), push(R >> i, 1 << i);
+			update(L >> i, 1 << i), update(R >> i, 1 << i);
+		}
+	}
+	// ## return SUM/MAX/MIN in [l, r)
+	ValueType query(int l, int r) {
+		l += ARY_SIZE; r += ARY_SIZE - 1;
+		for (int i = HEIGHT; i >= 0; --i) push(l >> i, 1 << i), push(r >> i, 1 << i);
+		++r;
+		ValueType vl = MonoidOfValue::id(), vr = MonoidOfValue::id();
+		int w = 1;
+		while (l < r) {
+			if (l & 1) update(l, w), vl = MonoidOfValue::op(vl, seg[l]), ++l;
+			if (r & 1) --r, update(r, w), vr = MonoidOfValue::op(seg[r], vr);
+			l >>= 1; r >>= 1; w <<= 1;
+		}
+		return MonoidOfValue::op(vl, vr);
+	}
+};
+// ------------>8---------- LazySegmentTree ---------->8------------]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

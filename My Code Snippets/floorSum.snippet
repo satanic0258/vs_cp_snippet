@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>floorSum</Title>
+      <Description>floor sum．Sum_{i=0..N-1} floor((A*i+B)/M)をO(logN)で求める．</Description>
+      <Shortcut>SNIPfloorSum</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[// Sum_{i=0..n-1} floor((a*i+b)/m) for n>=0, m>0, a,b>=0
+static long long floorSumNonNeg(long long n, long long m, long long a, long long b) {
+	if (n == 0) return 0;
+	if (a == 0) return (b / m) * n;
+
+	if (a >= m) {
+		long long q = a / m;
+		long long add = n * (n - 1) / 2 * q;
+		return add + floorSumNonNeg(n, m, a - q * m, b);
+	}
+	if (b >= m) {
+		long long q = b / m;
+		long long add = n * q;
+		return add + floorSumNonNeg(n, m, a, b - q * m);
+	}
+
+	long long an = a * n + b;
+	long long q = (long long)(an / m);
+	long long r = (long long)(an - q * m);
+	return floorSumNonNeg(q, a, m, r);
+}
+
+// mathematical floor division for m>0
+static inline long long floor_div(long long x, long long m) {
+	if (x >= 0) return x / m;
+	return -((-x + m - 1) / m); // = floor(x/m)
+}
+
+// Sum_{i=0..n-1} floor((a*i+b)/m) for n>=0, m>0, a,b can be negative
+static long long floorSum(long long n, long long m, long long a, long long b) {
+	if (n == 0) return 0;
+
+	long long q_a = floor_div(a, m);
+	long long r_a = a - q_a * m; // 0 <= r_a < m
+	long long q_b = floor_div(b, m);
+	long long r_b = b - q_b * m; // 0 <= r_b < m
+
+	long long ans = 0;
+	ans += q_a * n * (n - 1) / 2;
+	ans += q_b * n;
+	ans += floorSumNonNeg(n, m, r_a, r_b);
+	return (long long)ans;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

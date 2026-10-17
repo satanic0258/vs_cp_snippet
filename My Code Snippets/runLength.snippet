@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>runLength</Title>
+      <Description>文字列をランレングス圧縮し(文字,長さ)の列を返す．O(|S|)．</Description>
+      <Shortcut>SNIPrunLength</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[V<std::pair<char, int>> runLength(std::string s) {
+	V<std::pair<char, int>> res;
+	for (auto c : s) {
+		if (res.empty() || res.back().first != c) {
+			res.emplace_back(c, 1);
+		}
+		else {
+			++res.back().second;
+		}
+	}
+	return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

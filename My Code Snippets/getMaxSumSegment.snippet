@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>getMaxSumSegment</Title>
+      <Author>[USERNAME]</Author>
+      <Description>列の部分区間の和の最大値を答える．O(N)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPgetMaxSumSegment</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[struct Result_getMaxSumSegment { int l, r, val; };
+Result_getMaxSumSegment getMaxSumSegment(const std::vector<int>& a) {
+	V<int> c(a.size() + 1, 0);
+	for (int i = 0; i < a.size(); ++i) c[i + 1] = c[i] + a[i];
+	int ans = a[0];
+	int l = 0, r = 1;
+	int mi = 0, mii = 0;
+	for (int i = 0; i < a.size(); ++i) {
+		if (ans < c[i + 1] - mi) {
+			ans = c[i + 1] - mi;
+			l = mii; r = i + 1;
+		}
+		if (mi > c[i + 1]) {
+			mi = c[i + 1];
+			mii = i + 1;
+		}
+	}
+	return { l, r, ans };
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

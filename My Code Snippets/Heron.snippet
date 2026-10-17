@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Heron</Title>
+      <Shortcut>SNIPHeron</Shortcut>
+      <Description>ヘロンの公式を用いて三角形の面積を計算する。O(1)。</Description>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[double Heron(double a, double b, double c) {
+	double s = (a + b + c) / 2;
+	return std::sqrt(s*(s - a)*(s - b)*(s - c));
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

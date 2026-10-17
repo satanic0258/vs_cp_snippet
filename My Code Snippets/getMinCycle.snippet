@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>getMinCycle</Title>
+      <Author>[USERNAME]</Author>
+      <Description>最小サイクル長を返す．O(NM)．</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPgetMinCycle</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[int getMinCycle(const VV<int>& g) { // O(VE)
+  auto calc = [&](int s) {
+    auto que = std::queue<std::tuple<int, int, int>>{};
+    que.emplace(0, s, s);
+    while (!que.empty()) {
+      int dist, now, pre;
+      std::tie(dist, now, pre) = que.front(); que.pop();
+      if (now == s && pre != s) return dist;
+      for (auto ne : g[now]) if(ne != pre) {
+        que.emplace(dist + 1, ne, now);
+      }
+    }
+    return INFINT;
+  };
+  int res = INFINT;
+  REP(i, g.size()) CHMIN(res, calc(i));
+  return res;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

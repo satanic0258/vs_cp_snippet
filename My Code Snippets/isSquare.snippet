@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>isSquare</Title>
+      <Author>[USERNAME]</Author>
+      <Description>平方数かどうかを判定する。非負整数のみ。O(1)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPisSquare</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[// only non-negative integer (i.e. only n>=0)
+bool isSquare(ll n) {
+	struct Domain_Error {};
+	if (n < 0) throw Domain_Error();
+	ll d = (ll)std::sqrt(n) - 1;
+	while (d*d < n) ++d;
+	return d*d == n;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -1,0 +1,208 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>FPS</Title>
+      <Description>形式的べき級数ライブラリ．</Description>
+      <Shortcut>SNIPFPS</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$">
+		  <![CDATA[struct NTT {
+	static inline size_t nextPowerOfTwo(size_t x) {
+		--x;
+		x |= x >> 1;
+		x |= x >> 2;
+		x |= x >> 4;
+		x |= x >> 8;
+		x |= x >> 16;
+		return ++x;
+	}
+
+	static std::vector<ModInt> tmp;
+	static size_t sz;
+	static std::vector<ModInt>& ntt(std::vector<ModInt>& a, bool inv = false) {
+		sz = nextPowerOfTwo(a.size());
+		a.resize(sz);
+		tmp.resize(sz);
+		size_t mask = sz - 1;
+		size_t p = 0;
+		for (size_t i = sz >> 1; i >= 1; i >>= 1) {
+			auto& cur = (p & 1) ? tmp : a;
+			auto& nex = (p & 1) ? a : tmp;
+			ModInt e = ModInt(3) ^ ((MOD - 1) / sz * i);
+			if (inv) e = 1 / e;
+			ModInt w = 1;
+			for (size_t j = 0; j < sz; j += i) {
+				for (size_t k = 0; k < i; ++k) {
+					nex[j + k] = (cur[((j << 1) & mask) + k] + w * cur[(((j << 1) + i) & mask) + k]);
+				}
+				w *= e;
+			}
+			++p;
+		}
+		if (p & 1) std::swap(a, tmp);
+		if (inv) {
+			const ModInt invSz = ModInt(1) / (int)sz;
+			for (size_t i = 0; i < sz; ++i) a[i] *= invSz;
+		}
+		return a;
+	}
+
+	static std::vector<ModInt> mul(std::vector<ModInt> a, std::vector<ModInt> b) {
+		size_t m = a.size() + b.size() - 1;
+		a.resize(m); a = ntt(a);
+		b.resize(m); b = ntt(b);
+		for (size_t i = 0; i < a.size(); ++i) a[i] *= b[i];
+		a = ntt(a, true);
+		a.resize(m);
+		return a;
+	}
+};
+std::vector<ModInt> NTT::tmp;
+size_t NTT::sz = 1;
+
+struct FormalPowerSeries : std::vector<ModInt> {
+	using std::vector<ModInt>::vector;
+	using FPS = FormalPowerSeries;
+
+	FormalPowerSeries(const std::vector<int>& a) : std::vector<ModInt>(a.size()) { REP(i, a.size()) (*this)[i] = a[i]; }
+	FormalPowerSeries(std::initializer_list<int>& a) : FormalPowerSeries(a.begin(), a.end()) {}
+	FormalPowerSeries(const std::vector<ModInt>& a) : std::vector<ModInt>(a) {}
+
+	inline FPS pre(int sz) const {
+		return FPS(this->begin(), this->begin() + std::min((int)this->size(), sz));
+	}
+	inline FPS& shrinkTo(size_t sz) {
+		if (this->size() > sz) this->resize(sz);
+		return *this;
+	}
+	inline FPS rev() const {
+		return FPS(this->rbegin(), this->rend());
+	}
+	inline FPS& norm() {
+		while (!this->empty() && this->back() == ModInt(0)) this->pop_back();
+		return *this;
+	}
+
+	FPS operator+(const FPS& r) const { return FPS(*this) += r; }
+	FPS operator-(const FPS& r) const { return FPS(*this) -= r; }
+	FPS operator*(const FPS& r) const { return FPS(*this) *= r; }
+	FPS operator/(const FPS& r) const { return FPS(*this) /= r; }
+
+	FPS& operator+=(const FPS& r) {
+		if (this->size() < r.size()) this->resize(r.size());
+		REP(i, r.size()) (*this)[i] += r[i];
+		return *this;
+	}
+	FPS& operator-=(const FPS& r) {
+		if (this->size() < r.size()) this->resize(r.size());
+		REP(i, r.size()) (*this)[i] -= r[i];
+		return *this;
+	}
+	FPS& operator*=(const FPS& r) {
+		if (std::min(this->size(), r.size()) <= 60) {
+			FPS c(this->size() + r.size() - 1);
+			REP(i, this->size()) REP(j, r.size()) c[i + j] += (*this)[i] * r[j];
+			return *this = c;
+		}
+		return *this = NTT::mul(*this, r);
+	}
+	FPS& operator/=(const FPS& r) {
+		if (this->size() < r.size()) {
+			this->clear();
+			return *this;
+		}
+		int n = this->size() - r.size() + 1;
+		return *this = ((*this).rev().pre(n) * r.rev().inv(n)).pre(n).rev();
+	}
+	FPS& mul_sparse(const std::map<int, ModInt>& r) {
+		auto [t, val] = *(r.begin());
+
+		size_t sz = this->size();
+		size_t rsz = r.rbegin()->first;
+		this->resize(sz + rsz, 0);
+		for (int i = sz + rsz - 1; i >= 0; --i) {
+			for (const auto& p : r) if (p.first - t != 0) {
+				if (i >= p.first - t) (*this)[i] += p.second * (*this)[i - p.first + t] / val;
+			}
+		}
+		if (val != 1) {
+			for (int i = sz + rsz - 1; i >= 0; --i) (*this)[i] *= val;
+		}
+		if (t != 0) {
+			FPS tmp(t, 0);
+			this->insert(this->begin(), ALL(tmp));
+		}
+		return *this;
+	}
+	FPS& div_sparse(const std::map<int, ModInt>& r, int sz = -1) {
+		auto [t, val] = *(r.begin());
+
+		if (sz == -1) sz = this->size();
+		else this->resize(sz);
+		for (size_t i = 0; i < sz; ++i) {
+			for (const auto& p : r) if (p.first - t != 0) {
+				if (i >= p.first - t) (*this)[i] -= p.second * (*this)[i - p.first + t];
+			}
+			if (val != 1) (*this)[i] /= val;
+		}
+		if (t != 0) this->erase(this->begin(), this->begin() + t);
+		return *this;
+	}
+	FPS pow(int p, int lim = -1) const { // O(NlogNlogp)実装
+		assert(p >= 0);
+		if (lim < 0) lim = this->size();
+		FPS x(*this);
+		FPS res(1, 1);
+		while (p) {
+			if (p & 1) { res *= x; res.shrinkTo(lim); }
+			p >>= 1;
+			if (!p) break;
+			x *= x; x.shrinkTo(lim);
+		}
+		return res;
+	}
+	FPS inv(int lim = -1) const {
+		assert((*this)[0] != 0);
+		if (lim < 0) lim = this->size();
+		FPS res(lim);
+		res[0] = ModInt(1) / (*this)[0];
+		for (int n = 1; n < lim; n *= 2) {
+			FPS f(this->pre(n * 2)), g(res.pre(n * 2));
+			f.resize(n * 2); NTT::ntt(f); // f=F(f)
+			g.resize(n * 2); NTT::ntt(g); // g=F(g)
+			REP(i, n * 2) f[i] *= g[i]; // f=F(fg)
+			NTT::ntt(f, true); // f=fg(循環アリ)
+			REP(i, n) f[i] = 0; // f=fg-1
+			NTT::ntt(f); // f=F(g)F(fg-1)
+			REP(i, n * 2) f[i] *= g[i]; // f=F(g(fg-1))
+			NTT::ntt(f, true); // f=g(fg-1)
+			FOR(i, n, std::min(2 * n, lim)) res[i] = -f[i]; // res=g-g(fg-1)
+		}
+		return res;
+	}
+};
+using FPS = FormalPowerSeries;
+
+FPS pow_sparse(std::map<int, ModInt> f, int p, int lim = -1) { // O(NK)
+	assert(f.begin()->first == 0 && f.begin()->second.val == 1);
+	if (lim < 0) lim = p * f.rbegin()->first + 1;
+	FPS F(lim), dF(lim);
+	F[0] = 1;
+	REP(n, lim - 1) {
+		for (const auto& [i, v] : f) if (i > 0) {
+			/* */ if (n - i + 0 >= 0) dF[n] += v * (F[n - i + 1] * i * p - dF[n - i]);
+			else if (n - i + 1 >= 0) dF[n] += v * F[n - i + 1] * i * p;
+			else break;
+		}
+		F[n + 1] = dF[n] / (n + 1);
+	}
+	return F;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

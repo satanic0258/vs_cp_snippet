@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>bisectionDouble</Title>
+      <Author>[USERNAME]</Author>
+      <Description>二分法を用いて閾値を計算する。O(repeat)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPbisectionDouble</Shortcut>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal Editable="true">
+          <ID>OK</ID>
+          <ToolTip>OK</ToolTip>
+          <Default>0</Default>
+          <Function>
+          </Function>
+        </Literal>
+        <Literal Editable="true">
+          <ID>NG</ID>
+          <ToolTip>NG</ToolTip>
+          <Default>1e300</Default>
+          <Function>
+          </Function>
+        </Literal>
+        <Literal Editable="true">
+          <ID>REPEAT</ID>
+          <ToolTip>REPEAT</ToolTip>
+          <Default>60</Default>
+          <Function>
+          </Function>
+        </Literal>
+        <Literal Editable="true">
+          <ID>CHECK</ID>
+          <ToolTip>CHECK</ToolTip>
+          <Default>/* check code */</Default>
+          <Function>
+          </Function>
+        </Literal>
+      </Declarations>
+      <Code Language="cpp" Delimiter="$">
+        <![CDATA[{ // bisection double
+	double ok = $OK$, ng = $NG$, repeat = $REPEAT$;
+	auto check = [&](double x) {
+		$CHECK$
+	};
+	while (repeat--) {
+			double me = (ok + ng) / 2;
+			(check(me) ? ok : ng) = me;
+		}
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

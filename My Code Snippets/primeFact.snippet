@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>primeFact</Title>
+      <Author>[USERNAME]</Author>
+      <Description>素因数分解する。O(√N)。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPprimeFact</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[std::vector<std::pair<ll, ll>> primeFact(ll n) {
+	std::vector<std::pair<ll, ll>> result;
+	for (ll i = 2; i*i <= n; ++i) {
+		int divCount = 0;
+		if (n%i == 0) {
+			do {
+				++divCount;
+				n /= i;
+			} while (n%i == 0);
+			result.emplace_back(i, divCount);
+		}
+	}
+	if (n != 1) result.emplace_back(n, 1);
+	return result;
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

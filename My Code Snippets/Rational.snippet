@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>Rational</Title>
+      <Author>[USERNAME]</Author>
+      <Description>有理数クラス。</Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>SNIPRational</Shortcut>
+    </Header>
+    <Snippet>
+      <Code Language="cpp" Delimiter="$"><![CDATA[class Rational {
+	friend std::ostream& operator<<(std::ostream& os, const Rational& obj);
+public:
+	i64 n, d;
+	inline i64 gcd(i64 a, i64 b) { return b ? gcd(b, a%b) : a; }
+	inline void reduce() {
+		assert(d != 0);
+		i64 g = gcd(std::abs(n), std::abs(d));
+		n /= g; d /= g;
+		if (d < 0) {
+			n *= -1;
+			d *= -1;
+		}
+	}
+	Rational() : n(0), d(1) {}
+	Rational(i64 _n) : n(_n), d(1) {}
+	Rational(i64 _n, i64 _d) : n(_n), d(_d) { reduce(); }
+	operator double() { return 1.0*n / d; }
+	bool operator<(const Rational& r) const { return (__int128)n * r.d < (__int128)r.n * d; }
+	bool operator<=(const Rational& r) const { return !(r < *this); }
+	bool operator>(const Rational& r) const { return r < *this; }
+	bool operator>=(const Rational& r) const { return !(*this < r); }
+	bool operator==(const Rational& r) const { return n == r.n && d == r.d; }
+	bool operator!=(const Rational& r) const { return !(*this == r); }
+	Rational& operator=(const i64& r) { n = r; d = 1; return *this; }
+	Rational operator+() const { return *this; }
+	Rational operator-() const { return Rational(-n, d); }
+	Rational& operator+=(const Rational& r) {
+		if (d == r.d) n += r.n;
+		else {
+			i64 g = gcd(d, r.d);
+			n = n * r.d / g + r.n * d / g;
+			d *= r.d / g;
+			if (d < 0) { n *= -1; d *= -1; }
+		}
+		return *this;
+	}
+	Rational& operator+=(const i64& r) { n += r * d; reduce(); return *this; }
+	Rational& operator-=(const Rational& r) { return *this += -r; }
+	Rational& operator-=(const i64& r) { return *this += -r; }
+	Rational& operator*=(const Rational& r) { n *= r.n; d *= r.d; reduce(); return *this; }
+	Rational& operator*=(const i64& r) { n *= r; reduce(); return *this; }
+	Rational& operator/=(const Rational& r) { return *this *= Rational(r.d, r.n); }
+	Rational& operator/=(const i64& r) { return *this *= Rational(1, r); }
+	Rational operator+(const Rational& r) const { return Rational(*this) += r; }
+	Rational operator-(const Rational& r) const { return Rational(*this) -= r; }
+	Rational operator*(const Rational& r) const { return Rational(*this) *= r; }
+	Rational operator/(const Rational& r) const { return Rational(*this) /= r; }
+};
+/* friend */ std::ostream& operator<<(std::ostream& os, const Rational& obj) {
+	os << obj.n << '/' << obj.d;
+	return os;
+}
+/* Rational */]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
