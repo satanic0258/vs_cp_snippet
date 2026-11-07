@@ -10,7 +10,8 @@
       <Shortcut>SNIPBASE_TEMPLATE</Shortcut>
     </Header>
     <Snippet>
-      <Code Language="cpp" Delimiter="$"><![CDATA[//
+      <Code Language="cpp" Delimiter="$">
+		  <![CDATA[//
 //
 //                               S i r o t a n   w a t c h e s   o v e r   y o u .
 //
@@ -103,36 +104,6 @@ template<typename First, typename...Rest>void MACRO_VEC_ROW_Scan(int p, First & 
 #define VEC(type, c, n) std::vector<type> c(n);for(auto& i:c)scan_in>>i;
 #define MAT(type, c, m, n) std::vector<std::vector<type>> c(m, std::vector<type>(n));for(auto& R:c)for(auto& w:R)scan_in>>w;
 // output
-template<typename T>void MACRO_OUT(const T t) { scan_out << t; }
-template<typename First, typename...Rest>void MACRO_OUT(const First first, const Rest...rest) { scan_out << first << ' '; MACRO_OUT(rest...); }
-#define OUT(...) MACRO_OUT(__VA_ARGS__);
-#define FOUT(n, dist) scan_out<<std::fixed<<std::setprecision(n)<<(dist);
-#define SOUT(n, c, dist) scan_out<<std::setw(n)<<std::setfill(c)<<(dist);
-#define VOUT(v) {auto tv_(v); for(size_t w_ = 0; w_ < tv_.size(); ++w_) {OUT(tv_[w_]);if(w_+1<tv_.size()){SP}}}
-#define EOUT(...) do{ OUT(__VA_ARGS__); BR; exit(0); }while(0)
-#define SP scan_out<<' ';
-#define TAB scan_out<<'\t';
-#define BR scan_out<<'\n';
-#define SPBR(w, n) scan_out<<(w + 1 == n ? '\n' : ' ');
-#define ENDL scan_out<<std::endl;
-#define FLUSH scan_out<<std::flush;
-#define SHOW(dist) {std::cerr << #dist << "\t: " << (dist) << '\n';}
-// utility
-#define ALL(A) (A).begin(),(A).end()
-#define RALL(A) (A).rbegin(),(A).rend()
-#define FOR(w, A, n) for(int w=(A);w<(n);++w)
-#define REP(w, n) FOR(w, 0, n)
-#define RFOR(w, A, n) for(int w=(n)-1;w>=(A);--w)
-#define RREP(w, n) RFOR(w, 0, n)
-#define FORC(w, A, n) for(char w=(A);w<(n);++w)
-#define REPC(w, n) FORC(w, 0, n)
-template<class S, class T, class U> bool IN(S a, T x, U b) { return a <= x && x < b; }
-template<class T> inline bool CHMAX(T & a, const T b) { if (a < b) { a = b; return true; } return false; }
-template<class T> inline bool CHMIN(T & a, const T b) { if (a > b) { a = b; return true; } return false; }
-// test
-template<class T> using V = std::vector<T>;
-template<class T> using VV = V<V<T>>;
-
 //std::ostream & operator<<(std::ostream & os, const __int128 & t) {
 //	if (t >= 1000000000000000000) {
 //		os << (long long)(t / 1000000000000000000) << (long long)(t % 1000000000000000000);
@@ -161,28 +132,70 @@ template<typename T>
 std::ostream & operator<<(std::ostream & os, const std::set<T> & v) {
 	os << '{';
 	for (auto it = v.cbegin(); it != v.cend();) {
-		os << *it << (++it == v.cend() ? '}' : ',');
+		os << *it;
+		if (++it != v.end()) os << ',';
 	}
+	os << '}';
 	return os;
 }
 template<typename S, typename T>
 std::ostream & operator<<(std::ostream & os, const std::map<S, T> & m) {
 	os << '{';
-	for (auto it = m.cbegin(); it != m.cend();) { os << it->first << ':' << it->second; ++it; os << (it != m.cend() ? ',' : '}'); }
+	for (auto it = m.cbegin(); it != m.cend();) {
+		os << it->first << ':' << it->second;
+		if (++it != m.cend()) os << ',';
+	}
+	os << '}';
 	return os;
 }
 template<typename T>
 std::ostream & operator<<(std::ostream & os, std::queue<T> q) {
 	os << '<';
-	while (!q.empty()) { os << q.front(); q.pop(); os << (q.empty() ? '<' : ','); }
+	while (!q.empty()) {
+		os << q.front(); q.pop();
+		if (!q.empty()) os << ',';
+	}
+	os << '<';
 	return os;
 }
 template<typename T>
 std::ostream & operator<<(std::ostream & os, std::stack<T> q) {
 	os << '>';
-	while (!q.empty()) { os << q.top(); q.pop(); os << (q.empty() ? ']' : ','); }
+	while (!q.empty()) {
+		os << q.top(); q.pop();
+		if (!q.empty()) os << ',';
+	}
+	os << ']';
 	return os;
 }
+template<typename First, typename...Rest>void MACRO_OUT(const First & first, const Rest&...rest) { scan_out << first; ((scan_out << ' ' << rest), ...); }
+#define OUT(...) MACRO_OUT(__VA_ARGS__);
+#define FOUT(n, dist) scan_out<<std::fixed<<std::setprecision(n)<<(dist);
+#define SOUT(n, c, dist) scan_out<<std::setw(n)<<std::setfill(c)<<(dist);
+#define VOUT(v) {auto tv_(v); for(size_t w_ = 0; w_ < tv_.size(); ++w_) {OUT(tv_[w_]);if(w_+1<tv_.size()){SP}}}
+#define EOUT(...) do{ OUT(__VA_ARGS__); BR; exit(0); }while(0)
+#define SP scan_out<<' ';
+#define TAB scan_out<<'\t';
+#define BR scan_out<<'\n';
+#define SPBR(w, n) scan_out<<(w + 1 == n ? '\n' : ' ');
+#define ENDL scan_out<<std::endl;
+#define FLUSH scan_out<<std::flush;
+#define SHOW(dist) {std::cerr << #dist << "\t: " << (dist) << '\n';}
+// utility
+#define ALL(A) (A).begin(),(A).end()
+#define RALL(A) (A).rbegin(),(A).rend()
+#define FOR(w, A, n) for(int w=(A);w<(n);++w)
+#define REP(w, n) FOR(w, 0, n)
+#define RFOR(w, A, n) for(int w=(n)-1;w>=(A);--w)
+#define RREP(w, n) RFOR(w, 0, n)
+#define FORC(w, A, n) for(char w=(A);w<(n);++w)
+#define REPC(w, n) FORC(w, 0, n)
+template<class S, class T, class U> bool IN(S a, T x, U b) { return a <= x && x < b; }
+template<class T> inline bool CHMAX(T & a, const T b) { if (a < b) { a = b; return true; } return false; }
+template<class T> inline bool CHMIN(T & a, const T b) { if (a > b) { a = b; return true; } return false; }
+template<class T> using V = std::vector<T>;
+template<class T> using VV = V<V<T>>;
+
 namespace std {
 	template<typename S, typename T> class numeric_limits<pair<S, T>> {
 	public:
@@ -197,15 +210,15 @@ using u64 = unsigned long long;
 using ll = long long;
 using ull = unsigned long long;
 using ld = long double;
-//using PAIR = std::pair<int, int>;
-using PAIR = std::pair<i64, i64>;
+using PAIR = std::pair<int, int>;
+//using PAIR = std::pair<i64, i64>;
 constexpr int INFINT = (1 << 30) - 1;                    // 1.07x10^ 9
 constexpr int INFINT_LIM = (1LL << 31) - 1;              // 2.15x10^ 9
 constexpr long long INFLL = 1LL << 60;                          // 1.15x10^18
 constexpr long long INFLL_LIM = (1LL << 62) - 1 + (1LL << 62);  // 9.22x10^18
 constexpr ld EPS = 1e-6;
 constexpr int MOD = 998244353;
-constexpr long double PI = 3.141592653589793238462643383279;
+constexpr long double PI = 3.141592653589793238462643383279l;
 template<class T, size_t N> void FILL(T(&a)[N], const T & val) { for (auto & x : a) x = val; }
 template<class ARY, size_t N, size_t M, class T> void FILL(ARY(&a)[N][M], const T & val) { for (auto & b : a) FILL(b, val); }
 template<class T> void FILL(std::vector<T> & a, const T & val) { for (auto & x : a) x = val; }
